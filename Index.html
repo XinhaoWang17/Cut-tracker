@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<!-- Apple PWA 必备 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CUT训练">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- 根据系统主题动态设定 theme-color，由 JS 控制 -->
+<meta name="theme-color" id="themeColor" content="#1C1C22">
+<title>CUT · 训练追踪</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ===== 主题变量 ===== */
+:root {
+  /* 深色主题（默认） — 比原版稍亮，提升可读性 */
+  --bg:      #1C1C22;
+  --card:    #242429;
+  --border:  #2E2E35;
+  --border2: #38383F;
+  --text:    #ECEAE6;
+  --text2:   #AAA8A4;
+  --text3:   #777;
+  --text4:   #555;
+  --text5:   #3A3A3A;
+  --red:     #E8453C;
+  --blue:    #3A8EE6;
+  --green:   #4DC85A;
+  --yellow:  #F7C048;
+  --shadow:  0 2px 12px rgba(0,0,0,0.4);
+  --safe-top: env(safe-area-inset-top, 20px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:      #F2EFE9;
+    --card:    #FFFFFF;
+    --border:  #E0DDD6;
+    --border2: #CCC9C0;
+    --text:    #1A1A20;
+    --text2:   #555;
+    --text3:   #888;
+    --text4:   #AAA;
+    --text5:   #CCC;
+    --red:     #D43830;
+    --blue:    #2468B4;
+    --green:   #2E9E3A;
+    --yellow:  #C98A00;
+    --shadow:  0 2px 12px rgba(0,0,0,0.10);
+    color-scheme: light;
+  }
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans SC', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  max-width: 480px;
+  margin: 0 auto;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--safe-bottom) + 8px);
+  transition: background 0.3s, color 0.3s;
+}
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+button { font-family: inherit; border: none; background: none; cursor: pointer; color: inherit; }
+input { font-family: 'JetBrains Mono', monospace; }
+input:focus { outline: none; border-color: var(--red) !important; }
+
+/* ===== PWA 安装提示 ===== */
+.install-hint {
+  margin: 8px 16px 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
+  font-size: 12px;
+  color: var(--blue);
+  line-height: 1.5;
+  display: none;
+}
+.install-hint.show { display: flex; align-items: flex-start; gap: 8px; }
+.install-hint button.dismiss {
+  margin-left: auto; flex-shrink: 0; font-size: 14px;
+  color: var(--text3); padding: 0 4px;
+}
+
+/* ===== Header ===== */
+.header {
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  transition: background 0.3s;
+}
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 3px;
+  color: var(--red); font-weight: 600; margin-bottom: 4px;
+}
+.header h1 { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
+.quick-btn {
+  padding: 8px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  transition: all 0.2s; letter-spacing: 0.5px; flex-shrink: 0;
+}
+.quick-btn.on  { background: color-mix(in srgb, var(--red) 12%, transparent); border: 1px solid var(--red); color: var(--red); }
+.quick-btn.off { background: var(--card); border: 1px solid var(--border2); color: var(--text3); }
+.quick-banner {
+  margin-top: 10px; padding: 8px 12px; border-radius: 8px;
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 20%, transparent);
+  font-size: 11px; color: var(--red); line-height: 1.4; display: none;
+}
+.quick-banner.show { display: block; }
+
+/* ===== Tab bar ===== */
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+  background: var(--bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background 0.3s;
+}
+.tab-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 10px 0 8px; border-bottom: 2px solid transparent;
+  transition: color 0.2s; color: var(--text4);
+}
+.tab-item.active { color: var(--red); border-bottom-color: var(--red); }
+.tab-item .icon  { font-size: 18px; }
+.tab-item .label { font-size: 10px; margin-top: 2px; font-weight: 600; letter-spacing: 1px; }
+
+/* ===== Content ===== */
+.content { padding: 16px 16px 120px; min-height: 60vh; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ===== Day selector ===== */
+.day-selector { display: flex; gap: 8px; margin-bottom: 16px; }
+.day-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 4px; padding: 12px 0; border-radius: 12px;
+  border: 2px solid var(--border2);
+  transition: all 0.2s; background: var(--card);
+  box-shadow: var(--shadow);
+}
+.day-btn.active {
+  background: color-mix(in srgb, var(--c) 10%, var(--card));
+  border-color: var(--c);
+}
+.day-btn .emoji  { font-size: 18px; }
+.day-btn .d-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--text4);
+}
+.day-btn.active .d-label { color: var(--c); }
+
+/* ===== Section header ===== */
+.section-hdr { border-left: 3px solid var(--c); padding-left: 12px; margin-bottom: 16px; }
+.section-hdr h2  { font-size: 17px; font-weight: 700; }
+.section-hdr .sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* ===== Exercise card ===== */
+.ex-card {
+  background: var(--card);
+  border-radius: 12px; padding: 14px 14px 10px;
+  margin-bottom: 10px;
+  border-left: 3px solid var(--border2);
+  transition: opacity 0.3s;
+  box-shadow: var(--shadow);
+}
+.ex-card.done { opacity: 0.6; border-left-color: color-mix(in srgb, var(--green) 50%, transparent); }
+.ex-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.ex-name.done-text { color: var(--green); }
+.ex-meta { font-size: 11px; color: var(--text3); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+.ex-note { font-size: 11px; color: var(--text3); margin: 6px 0 10px; font-style: italic; }
+
+/* ===== Set row ===== */
+.set-grid { display: flex; flex-direction: column; gap: 6px; }
+.set-row  { display: flex; align-items: center; gap: 10px; height: 36px; }
+.chk {
+  width: 28px; height: 28px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; border: 2px solid var(--border2);
+  flex-shrink: 0; font-size: 12px; color: #fff; padding: 0;
+}
+.chk.checked { border-color: var(--c); background: var(--c); }
+.set-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; width: 48px; flex-shrink: 0; color: var(--text4);
+}
+.wt-tag {
+  padding: 4px 12px; border-radius: 6px;
+  font-size: 12px; font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s;
+  border: 1px solid var(--border2); background: var(--bg); color: var(--text4);
+}
+.wt-tag.has {
+  background: color-mix(in srgb, var(--c) 10%, var(--bg));
+  color: var(--c);
+  border-color: color-mix(in srgb, var(--c) 35%, transparent);
+}
+.wt-input-wrap { display: flex; align-items: center; gap: 4px; }
+.wt-input {
+  width: 64px; padding: 5px 8px; border-radius: 6px;
+  border: 1px solid var(--border2); background: var(--bg); color: var(--text); font-size: 13px;
+}
+.wt-ok {
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--green) 40%, transparent);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  color: var(--green); font-size: 14px; padding: 0;
+}
+.wt-no {
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  color: var(--red); font-size: 12px; padding: 0;
+}
+
+/* ===== Cardio ===== */
+.cardio-card {
+  margin-top: 12px; padding: 14px; border-radius: 10px;
+  background: color-mix(in srgb, var(--yellow) 6%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--yellow) 20%, transparent);
+  box-shadow: var(--shadow);
+}
+.cardio-card .c-title { font-size: 11px; letter-spacing: 2px; color: var(--yellow); margin-bottom: 6px; font-weight: 700; }
+.cardio-card .c-body  { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* ===== Rest day ===== */
+.rest-day {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 60px 20px; text-align: center;
+}
+
+/* ===== Week view ===== */
+.week-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 4px; margin-bottom: 16px;
+}
+.week-nav span { font-size: 15px; font-weight: 700; }
+.week-nav button {
+  width: 36px; height: 36px; border-radius: 8px;
+  border: 1px solid var(--border2); background: var(--card); color: var(--text3); font-size: 14px; padding: 0;
+}
+.week-day {
+  display: flex; align-items: center; padding: 12px 14px;
+  border-radius: 10px; margin-bottom: 6px;
+  border: 1px solid var(--border); background: var(--card);
+  width: 100%; text-align: left; box-shadow: var(--shadow);
+}
+.week-day.today {
+  border-color: color-mix(in srgb, var(--red) 35%, transparent);
+  background: color-mix(in srgb, var(--red) 6%, var(--card));
+}
+.week-dow { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; width: 32px; }
+.week-info { flex: 1; margin-left: 10px; }
+.week-info .name { font-size: 13px; font-weight: 500; color: var(--text2); }
+.week-info .name.rest { color: var(--text4); }
+.week-info .date { font-size: 10px; color: var(--text4); margin-top: 2px; }
+.mini-bar { width: 50px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.mini-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+.comp-pct {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600; width: 36px; text-align: right; color: var(--text4);
+}
+.comp-pct.full { color: var(--green); }
+
+/* ===== Progress ===== */
+.prog-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.prog-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border-radius: 8px; border: 1px solid var(--border); background: var(--card);
+  margin-bottom: 6px; width: 100%; text-align: left; box-shadow: var(--shadow);
+}
+.prog-row.current {
+  border-color: color-mix(in srgb, var(--red) 35%, transparent);
+  background: color-mix(in srgb, var(--red) 6%, var(--card));
+}
+.prog-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; width: 28px; }
+.prog-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.prog-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+
+.stats-box {
+  background: var(--card); border-radius: 12px; padding: 16px;
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+}
+.stats-title { font-size: 11px; letter-spacing: 2px; color: var(--text3); margin-bottom: 14px; font-weight: 600; }
+.stats-grid { display: flex; gap: 12px; justify-content: space-around; }
+.stat-item { text-align: center; }
+.stat-num { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; }
+.stat-lbl { font-size: 10px; color: var(--text3); margin-top: 4px; letter-spacing: 1px; }
+
+/* ===== Body ===== */
+.body-form {
+  background: var(--card); border-radius: 12px; padding: 16px;
+  border: 1px solid var(--border); margin-bottom: 16px; box-shadow: var(--shadow);
+}
+.body-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.body-row label { font-size: 13px; font-weight: 600; width: 48px; color: var(--text3); flex-shrink: 0; }
+.body-row input {
+  flex: 1; padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--border2); background: var(--bg); color: var(--text); font-size: 15px;
+}
+.body-submit {
+  width: 100%; padding: 12px; border-radius: 8px; border: none;
+  background: var(--red); color: #fff; font-size: 14px; font-weight: 700; margin-top: 4px;
+}
+.body-history {
+  background: var(--card); border-radius: 12px; padding: 16px;
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+}
+.body-hist-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.body-hist-row:last-child { border-bottom: none; }
+.body-hist-date { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text3); font-weight: 600; }
+.body-hist-vals { display: flex; gap: 16px; }
+.body-hist-val { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text2); font-weight: 600; }
+.body-hist-val small { font-size: 10px; color: var(--text3); }
+
+.footer {
+  text-align: center; padding: 20px 16px 32px;
+  font-size: 9px; color: var(--border2);
+  letter-spacing: 2px; font-family: 'JetBrains Mono', monospace;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.fade-in { animation: fadeIn 0.3s ease; }
+</style>
+</head>
+<body>
+
+<!-- 安装提示 -->
+<div class="install-hint" id="installHint">
+  <span>💡 点击 Safari 底部 <strong>分享</strong> → <strong>添加到主屏幕</strong>，即可像 App 一样使用，数据永久保存</span>
+  <button class="dismiss" onclick="dismissHint()">✕</button>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="brand" id="weekLabel">CUT · WEEK 1/10</div>
+      <h1>训练追踪</h1>
+    </div>
+    <button class="quick-btn off" id="quickBtn" onclick="toggleQuick()">📋 完整</button>
+  </div>
+  <div class="quick-banner" id="quickBanner">⚡ 精简模式：减少组数，保留核心动作，约30-40分钟完成</div>
+</div>
+
+<!-- Tab bar -->
+<div class="tab-bar">
+  <button class="tab-item active" onclick="switchTab('train')" data-tab="train">
+    <span class="icon">🏋️</span><span class="label">训练</span>
+  </button>
+  <button class="tab-item" onclick="switchTab('week')" data-tab="week">
+    <span class="icon">📅</span><span class="label">本周</span>
+  </button>
+  <button class="tab-item" onclick="switchTab('progress')" data-tab="progress">
+    <span class="icon">📊</span><span class="label">进度</span>
+  </button>
+  <button class="tab-item" onclick="switchTab('body')" data-tab="body">
+    <span class="icon">📐</span><span class="label">身体</span>
+  </button>
+</div>
+
+<!-- Content -->
+<div class="content">
+  <div class="tab-content active" id="tab-train"></div>
+  <div class="tab-content" id="tab-week"></div>
+  <div class="tab-content" id="tab-progress"></div>
+  <div class="tab-content" id="tab-body"></div>
+</div>
+<div class="footer">XINHAO · CUT PHASE · 10 WEEKS · 脊柱友好方案</div>
+
+<script>
+// ─── PWA 清单 & Service Worker ────────────────────────────
+(function initPWA() {
+  // 注入 Web App Manifest（兼容 Android/Chrome）
+  const manifest = {
+    name: "CUT · 训练追踪",
+    short_name: "CUT训练",
+    description: "Xinhao 10周减脂训练追踪",
+    start_url: ".",
+    display: "standalone",
+    orientation: "portrait",
+    background_color: "#1C1C22",
+    theme_color: "#E8453C",
+    icons: [{
+      src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23E8453C'/%3E%3Ctext y='.9em' font-size='70' x='12'%3E💪%3C/text%3E%3C/svg%3E",
+      sizes: "any",
+      type: "image/svg+xml",
+      purpose: "any maskable"
+    }]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('link');
+  link.rel = 'manifest'; link.href = url;
+  document.head.appendChild(link);
+
+  // 注册 Service Worker（offline 支持）
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+const CACHE='cut-v1';
+const ASSETS=['/'];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
+  self.skipWaiting();
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(clients.claim());
+});
+self.addEventListener('fetch',e=>{
+  e.respondWith(
+    caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('',{status:503})))
+  );
+});
+`;
+    const swBlob = new Blob([swCode], {type:'application/javascript'});
+    const swUrl  = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  }
+})();
+
+// ─── 主题色同步 ────────────────────────────────────────────
+function syncThemeColor() {
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.getElementById('themeColor').content = dark ? '#1C1C22' : '#F2EFE9';
+}
+syncThemeColor();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeColor);
+
+// ─── 安装提示 ──────────────────────────────────────────────
+function showInstallHintIfNeeded() {
+  const dismissed = localStorage.getItem('xh-hint-dismissed');
+  const isStandalone = window.navigator.standalone === true
+    || window.matchMedia('(display-mode: standalone)').matches;
+  if (!dismissed && !isStandalone) {
+    document.getElementById('installHint').classList.add('show');
+  }
+}
+function dismissHint() {
+  localStorage.setItem('xh-hint-dismissed', '1');
+  document.getElementById('installHint').classList.remove('show');
+}
+showInstallHintIfNeeded();
+
+// ─── DATA ─────────────────────────────────────────────────
+const PROGRAM_START = "2026-03-30";
+const TOTAL_WEEKS   = 10;
+const DAY_COLORS    = {1:"#E8453C", 2:"#3A8EE6", 3:"#4DC85A", 4:"#F7C048"};
+
+const EXERCISES = {
+  1: {
+    title:"上肢推 · 胸肩三头", icon:"💪",
+    exercises:[
+      {id:"bp",  name:"平板杠铃卧推",    sets:4, reps:"6-8",    rest:"2-3min", note:"保持大重量，维持力量",      tracked:true},
+      {id:"idp", name:"上斜哑铃卧推",    sets:3, reps:"8-10",   rest:"90s",    note:"控制离心，挤压上胸",        tracked:true},
+      {id:"sp",  name:"坐姿哑铃肩推",    sets:3, reps:"8-10",   rest:"90s",    note:"核心收紧",                  tracked:true},
+      {id:"fly", name:"龙门架夹胸",      sets:3, reps:"12-15",  rest:"60s",    note:"顶峰收缩2秒",               tracked:true},
+      {id:"lat", name:"侧平举(递减组)",  sets:3, reps:"12→10→8",rest:"60s",    note:"最后一组力竭",              tracked:true},
+      {id:"tri", name:"绳索下压+臂屈伸", sets:3, reps:"12+10",  rest:"60s",    note:"超级组",                    tracked:true},
+    ]
+  },
+  2: {
+    title:"下肢 · 脊柱友好+核心", icon:"🦵",
+    exercises:[
+      {id:"lp",  name:"腿举机",        sets:4, reps:"10-12", rest:"90s", note:"⚠️ 背贴靠背，臀不离座",      tracked:true},
+      {id:"ht",  name:"臀推 Hip Thrust",sets:4,reps:"10-12", rest:"90s", note:"臀部顶峰挤压2秒",            tracked:true},
+      {id:"le",  name:"腿屈伸",        sets:3, reps:"12-15", rest:"60s", note:"孤立股四，零腰椎压力",        tracked:true},
+      {id:"lc",  name:"俯卧腿弯举",    sets:3, reps:"12-15", rest:"60s", note:"慢速控制离心",               tracked:true},
+      {id:"bsq", name:"自重深蹲",      sets:3, reps:"15-20", rest:"45s", note:"保持动作模式",               tracked:false},
+      {id:"db",  name:"Dead Bug",      sets:3, reps:"10/侧", rest:"30s", note:"⭐ 腰椎康复黄金动作",         tracked:false},
+      {id:"bd",  name:"鸟狗式 Bird Dog",sets:3,reps:"10/侧", rest:"30s", note:"⭐ McGill护腰动作",           tracked:false},
+    ]
+  },
+  3: {
+    title:"上肢拉 · 背部二头", icon:"🔥",
+    exercises:[
+      {id:"pu",  name:"引体向上",          sets:4, reps:"6-10",  rest:"2min", note:"宽握，顶峰挤压背阔肌",     tracked:true},
+      {id:"csr", name:"胸部支撑划船",      sets:4, reps:"8-10",  rest:"90s",  note:"趴在斜凳上，卸载腰椎",     tracked:true},
+      {id:"sar", name:"单臂哑铃划船",      sets:3, reps:"10-12", rest:"60s",  note:"充分拉伸+收缩",            tracked:true},
+      {id:"fp",  name:"绳索面拉",          sets:3, reps:"15-20", rest:"45s",  note:"后束+肩袖健康",            tracked:true},
+      {id:"spd", name:"直臂下压",          sets:3, reps:"12-15", rest:"60s",  note:"背阔肌孤立发力",           tracked:true},
+      {id:"cur", name:"锤式弯举+杠铃弯举", sets:3, reps:"10+10", rest:"60s",  note:"超级组",                  tracked:true},
+    ]
+  },
+  4: {
+    title:"核心专项 + HIIT", icon:"⚡",
+    exercises:[
+      {id:"hl", name:"悬垂举腿",    sets:4, reps:"10-15", rest:"60s", note:"骨盆后倾，不摆荡",              tracked:false},
+      {id:"rc", name:"反向卷腹",    sets:4, reps:"15",    rest:"45s", note:"专注下腹，骨盆上卷",            tracked:false},
+      {id:"mc", name:"McGill卷腹",  sets:3, reps:"10-12", rest:"30s", note:"⭐ 腰椎友好，仅头肩离地",       tracked:false},
+      {id:"pp", name:"Pallof Press",sets:3, reps:"10/侧", rest:"45s", note:"抗旋转核心",                    tracked:false},
+    ],
+    cardio:"🏃 HIIT冲刺跑：热身5min → (冲刺30s+慢跑90s)×8轮 → 放松5min"
+  }
+};
+
+const QUICK_IDS = {
+  1:["bp","idp","sp","lat"],
+  2:["lp","ht","le","db"],
+  3:["pu","csr","sar","fp"],
+  4:["hl","rc","mc"]
+};
+const WEEK_TPL = [
+  {dow:1,label:"周一",dayId:1},
+  {dow:2,label:"周二",dayId:null,note:"5km跑"},
+  {dow:3,label:"周三",dayId:2},
+  {dow:4,label:"周四",dayId:null,note:"休息"},
+  {dow:5,label:"周五",dayId:3},
+  {dow:6,label:"周六",dayId:4},
+  {dow:0,label:"周日",dayId:null,note:"长跑/休息"}
+];
+
+// ─── STATE ────────────────────────────────────────────────
+let logs      = JSON.parse(localStorage.getItem("xh-logs")  || "{}");
+let bodyStats = JSON.parse(localStorage.getItem("xh-body")  || "[]");
+let quickMode = JSON.parse(localStorage.getItem("xh-quick") || "false");
+let currentTab    = "train";
+let selectedDayId = null;
+let selectedDate  = todayStr();
+let viewWeek      = getWeekNum(new Date());
+let editingWeight = null;
+
+function save()     { localStorage.setItem("xh-logs",  JSON.stringify(logs)); }
+function saveBody() { localStorage.setItem("xh-body",  JSON.stringify(bodyStats)); }
+
+// ─── HELPERS ──────────────────────────────────────────────
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function dateStr(d) { return d.toISOString().slice(0,10); }
+
+function getWeekNum(d) {
+  const s = new Date(PROGRAM_START);
+  return Math.max(0, Math.min(Math.floor((d - s) / (7 * 864e5)), TOTAL_WEEKS - 1));
+}
+function getWeekDates(w) {
+  const s = new Date(PROGRAM_START);
+  s.setDate(s.getDate() + w * 7);
+  return Array.from({length:7}, (_, i) => { const d = new Date(s); d.setDate(d.getDate()+i); return d; });
+}
+function getTodayDayId() {
+  const dow = new Date(selectedDate).getDay();
+  const t   = WEEK_TPL.find(w => w.dow === dow);
+  return t?.dayId || null;
+}
+function getExercises(dayId) {
+  if (!dayId) return [];
+  const full = EXERCISES[dayId].exercises;
+  if (!quickMode) return full;
+  const qids = QUICK_IDS[dayId];
+  return full.filter(e => qids.includes(e.id)).map(e => ({...e, sets: Math.min(e.sets, 3)}));
+}
+function isSetDone(dayId, exId, si) {
+  const k = `${selectedDate}-d${dayId}`;
+  return logs[k]?.[`${exId}-${si}`]?.done || false;
+}
+function getSetWeight(dayId, exId, si) {
+  const k = `${selectedDate}-d${dayId}`;
+  return logs[k]?.[`${exId}-${si}`]?.weight;
+}
+function toggleSet(dayId, exId, si) {
+  const k = `${selectedDate}-d${dayId}`;
+  if (!logs[k]) logs[k] = {};
+  const ek = `${exId}-${si}`;
+  if (logs[k][ek]) delete logs[k][ek];
+  else logs[k][ek] = {done:true, weight:null};
+  save(); renderTrain();
+}
+function setWeight(dayId, exId, si, val) {
+  const k = `${selectedDate}-d${dayId}`;
+  if (!logs[k]) logs[k] = {};
+  logs[k][`${exId}-${si}`] = {done:true, weight:parseFloat(val)||null};
+  save(); editingWeight = null; renderTrain();
+}
+function getDayComp(date, dayId) {
+  const k = `${date}-d${dayId}`, log = logs[k];
+  if (!log) return 0;
+  const exs   = getExercises(dayId);
+  const total = exs.reduce((s,e) => s + e.sets, 0);
+  const done  = Object.values(log).filter(v => v.done).length;
+  return total > 0 ? Math.min(done/total, 1) : 0;
+}
+function getWeekComp(w) {
+  const dates = getWeekDates(w);
+  let tot = 0, comp = 0;
+  dates.forEach(d => {
+    const t = WEEK_TPL.find(x => x.dow === d.getDay());
+    if (t?.dayId) { tot++; if (getDayComp(dateStr(d), t.dayId) > 0.5) comp++; }
+  });
+  return tot > 0 ? comp/tot : 0;
+}
+
+// ─── TAB SWITCHING ────────────────────────────────────────
+function switchTab(id) {
+  currentTab = id;
+  document.querySelectorAll('.tab-item').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === id);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === `tab-${id}`);
+  });
+  selectedDayId = null;
+  render();
+}
+function toggleQuick() {
+  quickMode = !quickMode;
+  localStorage.setItem("xh-quick", JSON.stringify(quickMode));
+  const btn = document.getElementById('quickBtn');
+  btn.className = `quick-btn ${quickMode?'on':'off'}`;
+  btn.textContent = quickMode ? '⚡ 精简' : '📋 完整';
+  document.getElementById('quickBanner').classList.toggle('show', quickMode);
+  render();
+}
+
+// ─── RENDER ───────────────────────────────────────────────
+function render() {
+  const w = getWeekNum(new Date());
+  document.getElementById('weekLabel').textContent = `CUT · WEEK ${w+1}/${TOTAL_WEEKS}`;
+  if      (currentTab==='train')    renderTrain();
+  else if (currentTab==='week')     renderWeek();
+  else if (currentTab==='progress') renderProgress();
+  else if (currentTab==='body')     renderBody();
+}
+
+function renderTrain() {
+  const el = document.getElementById('tab-train');
+  const activeDayId = selectedDayId || getTodayDayId();
+  const c = activeDayId ? DAY_COLORS[activeDayId] : '#666';
+  let h = `<div class="day-selector">`;
+  [1,2,3,4].forEach(d => {
+    const act = activeDayId === d;
+    h += `<button class="day-btn${act?' active':''}" style="--c:${DAY_COLORS[d]}"
+      onclick="selectedDayId=${d};renderTrain()">
+      <span class="emoji">${EXERCISES[d].icon}</span>
+      <span class="d-label">D${d}</span>
+    </button>`;
+  });
+  h += `</div>`;
+
+  if (activeDayId && EXERCISES[activeDayId]) {
+    const prog = EXERCISES[activeDayId];
+    const exs  = getExercises(activeDayId);
+    h += `<div class="section-hdr" style="--c:${c};border-left-color:${c}">
+      <h2>${prog.title}</h2>
+      <div class="sub">${quickMode?'精简模式 · 核心动作':'完整训练'}</div>
+    </div>`;
+
+    exs.forEach(ex => {
+      const allDone = Array.from({length:ex.sets}, (_,i) => isSetDone(activeDayId,ex.id,i)).every(Boolean);
+      h += `<div class="ex-card${allDone?' done':''}" style="border-left-color:${allDone?'':''+c+'40'}">
+        <div class="ex-name${allDone?' done-text':''}">${allDone?'✓ ':''}${ex.name}</div>
+        <div class="ex-meta">${ex.reps} · 休息${ex.rest}</div>
+        <div class="ex-note">💡 ${ex.note}</div>
+        <div class="set-grid">`;
+
+      for (let si = 0; si < ex.sets; si++) {
+        const done      = isSetDone(activeDayId, ex.id, si);
+        const w         = getSetWeight(activeDayId, ex.id, si);
+        const isEditing = editingWeight === `${ex.id}-${si}`;
+        h += `<div class="set-row">
+          <button class="chk${done?' checked':''}" style="--c:${c}"
+            onclick="toggleSet(${activeDayId},'${ex.id}',${si})">${done?'✓':''}</button>
+          <span class="set-label">第${si+1}组</span>`;
+
+        if (ex.tracked) {
+          if (isEditing) {
+            h += `<div class="wt-input-wrap">
+              <input type="number" inputmode="decimal" placeholder="kg"
+                id="wi-${ex.id}-${si}" class="wt-input" value="${w||''}"
+                onkeydown="if(event.key==='Enter')setWeight(${activeDayId},'${ex.id}',${si},this.value)">
+              <button class="wt-ok"
+                onclick="setWeight(${activeDayId},'${ex.id}',${si},document.getElementById('wi-${ex.id}-${si}').value)">✓</button>
+              <button class="wt-no" onclick="editingWeight=null;renderTrain()">✕</button>
+            </div>`;
+          } else {
+            h += `<button class="wt-tag${w?' has':''}" style="--c:${c}"
+              onclick="editingWeight='${ex.id}-${si}';renderTrain();setTimeout(()=>{const i=document.getElementById('wi-${ex.id}-${si}');if(i)i.focus();},50)">
+              ${w?w+'kg':'+kg'}</button>`;
+          }
+        }
+        h += `</div>`;
+      }
+      h += `</div></div>`;
+    });
+
+    if (prog.cardio) {
+      h += `<div class="cardio-card"><div class="c-title">有氧</div><div class="c-body">${prog.cardio}</div></div>`;
+    }
+  } else {
+    const tmpl = WEEK_TPL.find(w => w.dow === new Date(selectedDate).getDay());
+    h += `<div class="rest-day">
+      <div style="font-size:40px;margin-bottom:12px">🏃</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text3)">${tmpl?.note||'休息日'}</div>
+      <div style="font-size:12px;color:var(--text4);margin-top:8px">点击上方选择训练日 · 或享受恢复</div>
+    </div>`;
+  }
+  el.innerHTML = h;
+}
+
+function renderWeek() {
+  const el    = document.getElementById('tab-week');
+  const dates = getWeekDates(viewWeek);
+  let h = `<div class="week-nav">
+    <button onclick="viewWeek=Math.max(0,viewWeek-1);renderWeek()">◀</button>
+    <span>第 ${viewWeek+1} 周</span>
+    <button onclick="viewWeek=Math.min(${TOTAL_WEEKS-1},viewWeek+1);renderWeek()">▶</button>
+  </div>`;
+
+  dates.forEach(d => {
+    const tmpl    = WEEK_TPL.find(w => w.dow === d.getDay());
+    const ds      = dateStr(d), isToday = ds === todayStr();
+    const comp    = tmpl?.dayId ? getDayComp(ds, tmpl.dayId) : null;
+    const prog    = tmpl?.dayId ? EXERCISES[tmpl.dayId] : null;
+    const dayColor= tmpl?.dayId ? DAY_COLORS[tmpl.dayId] : 'var(--text4)';
+
+    h += `<button class="week-day${isToday?' today':''}"
+      onclick="${tmpl?.dayId?`selectedDate='${ds}';selectedDayId=${tmpl.dayId};switchTab('train')`:''}"
+      style="cursor:${tmpl?.dayId?'pointer':'default'}">
+      <div style="display:flex;align-items:center;gap:10px;flex:1">
+        <div class="week-dow" style="color:${isToday?'var(--red)':dayColor}">${tmpl?.label}</div>
+        <div class="week-info">
+          <div class="name${prog?'':' rest'}">${prog?prog.title:tmpl?.note||''}</div>
+          <div class="date">${d.getMonth()+1}/${d.getDate()}</div>
+        </div>
+      </div>`;
+    if (comp !== null) {
+      const barColor = comp >= 1 ? 'var(--green)' : dayColor;
+      h += `<div style="display:flex;align-items:center;gap:8px">
+        <div class="mini-bar"><div class="mini-bar-fill" style="width:${comp*100}%;background:${barColor}"></div></div>
+        <span class="comp-pct${comp>=1?' full':''}">${Math.round(comp*100)}%</span>
+      </div>`;
+    }
+    h += `</button>`;
+  });
+  el.innerHTML = h;
+}
+
+function renderProgress() {
+  const el   = document.getElementById('tab-progress');
+  const curW = getWeekNum(new Date());
+  let h = `<div class="prog-title">10周训练进度</div>`;
+  for (let w = 0; w < TOTAL_WEEKS; w++) {
+    const comp     = getWeekComp(w);
+    const isCur    = w === curW, isPast = w < curW;
+    const barColor = comp>=0.75 ? 'var(--green)' : comp>=0.5 ? 'var(--yellow)' : comp>0 ? 'var(--red)' : 'transparent';
+    const lblColor = isCur ? 'var(--red)' : isPast ? 'var(--text3)' : 'var(--text4)';
+    const pctColor = comp>=0.75 ? 'var(--green)' : comp>0 ? 'var(--yellow)' : 'var(--text5)';
+    h += `<button class="prog-row${isCur?' current':''}" onclick="viewWeek=${w};switchTab('week')">
+      <span class="prog-label" style="color:${lblColor}">W${w+1}</span>
+      <div class="prog-bar"><div class="prog-bar-fill" style="width:${comp*100}%;background:${barColor}"></div></div>
+      <span class="comp-pct" style="color:${pctColor}">${Math.round(comp*100)}%</span>
+    </button>`;
+  }
+
+  let sessions = Object.keys(logs).length;
+  let totalSets = 0, totalWeight = 0;
+  Object.values(logs).forEach(day => {
+    Object.values(day).forEach(s => {
+      if (s.done)   totalSets++;
+      if (s.weight) totalWeight += s.weight;
+    });
+  });
+  const wtDisplay = totalWeight > 1000 ? (totalWeight/1000).toFixed(1)+'t' : Math.round(totalWeight);
+
+  h += `<div class="stats-box" style="margin-top:20px">
+    <div class="stats-title">总览</div>
+    <div class="stats-grid">
+      <div class="stat-item"><div class="stat-num">${sessions}</div><div class="stat-lbl">训练次数</div></div>
+      <div class="stat-item"><div class="stat-num">${totalSets}</div><div class="stat-lbl">完成组数</div></div>
+      <div class="stat-item"><div class="stat-num">${wtDisplay}</div><div class="stat-lbl">总负重(kg)</div></div>
+    </div>
+  </div>`;
+  el.innerHTML = h;
+}
+
+function renderBody() {
+  const el = document.getElementById('tab-body');
+  let h = `<div class="prog-title">身体数据记录</div>
+  <div class="body-form">
+    <div class="body-row"><label>体重</label><input type="number" inputmode="decimal" placeholder="kg" id="bw"></div>
+    <div class="body-row"><label>腰围</label><input type="number" inputmode="decimal" placeholder="cm" id="bwa"></div>
+    <div class="body-row"><label>体脂%</label><input type="number" inputmode="decimal" placeholder="%" id="bbf"></div>
+    <button class="body-submit" onclick="addBodyStat()">记录今日数据</button>
+  </div>`;
+
+  if (bodyStats.length > 0) {
+    h += `<div class="body-history">
+      <div style="font-size:11px;letter-spacing:2px;color:var(--text3);margin-bottom:12px;font-weight:600">历史记录</div>`;
+    [...bodyStats].reverse().forEach(s => {
+      h += `<div class="body-hist-row">
+        <span class="body-hist-date">${s.date.slice(5)}</span>
+        <div class="body-hist-vals">
+          ${s.weight ? `<span class="body-hist-val">${s.weight}<small>kg</small></span>` : ''}
+          ${s.waist  ? `<span class="body-hist-val">${s.waist}<small>cm</small></span>`  : ''}
+          ${s.bf     ? `<span class="body-hist-val">${s.bf}<small>%</small></span>`      : ''}
+        </div>
+      </div>`;
+    });
+    h += `</div>`;
+  }
+
+  if (bodyStats.length >= 2) {
+    const f = bodyStats[0], l = bodyStats[bodyStats.length-1];
+    const wd  = f.weight && l.weight ? (l.weight - f.weight).toFixed(1) : null;
+    const wad = f.waist  && l.waist  ? (l.waist  - f.waist ).toFixed(1) : null;
+    if (wd || wad) {
+      h += `<div class="stats-box" style="margin-top:16px"><div class="stats-title">变化趋势</div><div class="stats-grid">`;
+      if (wd) {
+        const wdc = parseFloat(wd) <= 0 ? 'var(--green)' : 'var(--red)';
+        h += `<div class="stat-item"><div class="stat-num" style="color:${wdc}">${parseFloat(wd)>0?'+':''}${wd}</div><div class="stat-lbl">体重(kg)</div></div>`;
+      }
+      if (wad) {
+        const wadc = parseFloat(wad) <= 0 ? 'var(--green)' : 'var(--red)';
+        h += `<div class="stat-item"><div class="stat-num" style="color:${wadc}">${parseFloat(wad)>0?'+':''}${wad}</div><div class="stat-lbl">腰围(cm)</div></div>`;
+      }
+      h += `</div></div>`;
+    }
+  }
+  el.innerHTML = h;
+}
+
+function addBodyStat() {
+  const w  = document.getElementById('bw').value;
+  const wa = document.getElementById('bwa').value;
+  const bf = document.getElementById('bbf').value;
+  if (!w && !wa && !bf) return;
+  const entry = {date:todayStr(), weight:parseFloat(w)||null, waist:parseFloat(wa)||null, bf:parseFloat(bf)||null};
+  bodyStats = bodyStats.filter(s => s.date !== entry.date);
+  bodyStats.push(entry);
+  bodyStats.sort((a,b) => a.date.localeCompare(b.date));
+  saveBody();
+  renderBody();
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+const btn = document.getElementById('quickBtn');
+btn.className   = `quick-btn ${quickMode?'on':'off'}`;
+btn.textContent = quickMode ? '⚡ 精简' : '📋 完整';
+document.getElementById('quickBanner').classList.toggle('show', quickMode);
+render();
+</script>
+</body>
+</html>
