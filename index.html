@@ -570,6 +570,19 @@ function getExercises(dayId) {
   const qids = QUICK_IDS[dayId];
   return full.filter(e => qids.includes(e.id)).map(e => ({...e, sets: Math.min(e.sets, 3)}));
 }
+// 找到某个 dayId 最近一次对应的日历日期
+function getMostRecentDateForDayId(dayId) {
+  const tmpl = WEEK_TPL.find(w => w.dayId === dayId);
+  if (!tmpl) return todayStr();
+  const targetDow = tmpl.dow;
+  const today = new Date();
+  let diff = today.getDay() - targetDow;
+  if (diff < 0) diff += 7;
+  const result = new Date(today);
+  result.setDate(today.getDate() - diff);
+  return dateStr(result);
+}
+
 function isSetDone(dayId, exId, si) {
   const k = `${selectedDate}-d${dayId}`;
   return logs[k]?.[`${exId}-${si}`]?.done || false;
@@ -650,7 +663,7 @@ function renderTrain() {
   [1,2,3,4].forEach(d => {
     const act = activeDayId === d;
     h += `<button class="day-btn${act?' active':''}" style="--c:${DAY_COLORS[d]}"
-      onclick="selectedDayId=${d};renderTrain()">
+      onclick="selectedDayId=${d};selectedDate=getMostRecentDateForDayId(${d});renderTrain()">
       <span class="emoji">${EXERCISES[d].icon}</span>
       <span class="d-label">D${d}</span>
     </button>`;
@@ -660,9 +673,12 @@ function renderTrain() {
   if (activeDayId && EXERCISES[activeDayId]) {
     const prog = EXERCISES[activeDayId];
     const exs  = getExercises(activeDayId);
+    const displayDate = new Date(selectedDate + 'T12:00:00');
+    const dateLabel = `${displayDate.getMonth()+1}月${displayDate.getDate()}日`;
+    const isToday = selectedDate === todayStr();
     h += `<div class="section-hdr" style="--c:${c};border-left-color:${c}">
       <h2>${prog.title}</h2>
-      <div class="sub">${quickMode?'精简模式 · 核心动作':'完整训练'}</div>
+      <div class="sub">${quickMode?'精简模式 · 核心动作':'完整训练'} · <span style="color:${c}">${isToday?'今天':dateLabel}</span></div>
     </div>`;
 
     exs.forEach(ex => {
