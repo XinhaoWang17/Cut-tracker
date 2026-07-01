@@ -612,12 +612,19 @@ function dateStr(d) { return d.toISOString().slice(0,10); }
 
 function getWeekNum(d) {
   const s = new Date(PROGRAM_START);
-  return Math.max(0, Math.min(Math.floor((d - s) / (7 * 864e5)), TOTAL_WEEKS - 1));
+  const startMon = new Date(s);
+  startMon.setDate(s.getDate() - ((s.getDay() + 6) % 7)); // 回退到周一
+  startMon.setHours(0,0,0,0);
+  const target = new Date(d);
+  target.setHours(0,0,0,0);
+  return Math.max(0, Math.min(Math.floor((target - startMon) / (7 * 864e5)), TOTAL_WEEKS - 1));
 }
 function getWeekDates(w) {
   const s = new Date(PROGRAM_START);
-  s.setDate(s.getDate() + w * 7);
-  return Array.from({length:7}, (_, i) => { const d = new Date(s); d.setDate(d.getDate()+i); return d; });
+  const startMon = new Date(s);
+  startMon.setDate(s.getDate() - ((s.getDay() + 6) % 7)); // 回退到周一
+  startMon.setDate(startMon.getDate() + w * 7);
+  return Array.from({length:7}, (_, i) => { const d = new Date(startMon); d.setDate(d.getDate()+i); return d; });
 }
 function getTodayDayId() {
   const dow = new Date(selectedDate).getDay();
