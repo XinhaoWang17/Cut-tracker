@@ -319,6 +319,26 @@ input:focus { outline: none; border-color: var(--red) !important; }
 .stat-lbl { font-size: 10px; color: var(--text3); margin-top: 4px; letter-spacing: 1px; }
 
 /* ===== Body ===== */
+.chart-wrap {
+  background: var(--card); border-radius: 12px; padding: 16px;
+  border: 1px solid var(--border); margin-bottom: 14px; box-shadow: var(--shadow);
+}
+.chart-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.chart-tab {
+  flex: 1; padding: 6px 0; border-radius: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  border: 1px solid var(--border2); background: var(--bg); color: var(--text4);
+  transition: all 0.2s;
+}
+.chart-tab.active {
+  background: color-mix(in srgb, var(--c) 12%, var(--bg));
+  border-color: var(--c); color: var(--c);
+}
+#bodyChart { width: 100%; height: 160px; display: block; }
+.chart-empty {
+  height: 100px; display: flex; align-items: center; justify-content: center;
+  color: var(--text4); font-size: 12px;
+}
 .body-form {
   background: var(--card); border-radius: 12px; padding: 16px;
   border: 1px solid var(--border); margin-bottom: 16px; box-shadow: var(--shadow);
@@ -601,6 +621,7 @@ let selectedDayId = null;
 let selectedDate  = todayStr();
 let viewWeek      = getWeekNum(new Date());
 let editingWeight = null;
+let chartMetric   = localStorage.getItem("xh-chart-metric") || "weight";
 
 function save()        { localStorage.setItem("xh-logs",  JSON.stringify(logs)); }
 function saveBody()    { localStorage.setItem("xh-body",  JSON.stringify(bodyStats)); }
@@ -959,14 +980,42 @@ function renderProgress() {
 
 function renderBody() {
   const el = document.getElementById('tab-body');
-  let h = `<div class="prog-title">身体数据记录</div>
-  <div class="body-form">
+
+  const METRICS = [
+    {key:"weight", label:"体重",  unit:"kg",  color:"var(--red)"},
+    {key:"muscle", label:"骨骼肌", unit:"kg", color:"var(--blue)"},
+    {key:"bf",     label:"体脂率", unit:"%",  color:"var(--yellow)"},
+  ];
+
+  // ── 图表区 ──
+  let h = `<div class="chart-wrap">
+    <div class="chart-tabs">`;
+  METRICS.forEach(m => {
+    const act = chartMetric === m.key;
+    h += `<button class="chart-tab${act?' active':''}" style="--c:${m.color}"
+      onclick="chartMetric='${m.key}';localStorage.setItem('xh-chart-metric','${m.key}');renderBody()"
+    >${m.label}</button>`;
+  });
+  h += `</div>`;
+
+  const metric  = METRICS.find(m => m.key === chartMetric);
+  const points  = bodyStats.filter(s => s[chartMetric] != null);
+  if (points.length >= 2) {
+    h += `<canvas id="bodyChart"></canvas>`;
+  } else {
+    h += `<div class="chart-empty">记录 2 条以上数据后显示图表</div>`;
+  }
+  h += `</div>`;
+
+  // ── 录入表单 ──
+  h += `<div class="body-form">
     <div class="body-row"><label>体重</label><input type="number" inputmode="decimal" placeholder="kg" id="bw"></div>
-    <div class="body-row"><label>腰围</label><input type="number" inputmode="decimal" placeholder="cm" id="bwa"></div>
+    <div class="body-row"><label>骨骼肌</label><input type="number" inputmode="decimal" placeholder="kg" id="bm"></div>
     <div class="body-row"><label>体脂%</label><input type="number" inputmode="decimal" placeholder="%" id="bbf"></div>
     <button class="body-submit" onclick="addBodyStat()">记录今日数据</button>
   </div>`;
 
+  // ── 历史记录 ──
   if (bodyStats.length > 0) {
     h += `<div class="body-history">
       <div style="font-size:11px;letter-spacing:2px;color:var(--text3);margin-bottom:12px;font-weight:600">历史记录</div>`;
@@ -974,41 +1023,127 @@ function renderBody() {
       h += `<div class="body-hist-row">
         <span class="body-hist-date">${s.date.slice(5)}</span>
         <div class="body-hist-vals">
-          ${s.weight ? `<span class="body-hist-val">${s.weight}<small>kg</small></span>` : ''}
-          ${s.waist  ? `<span class="body-hist-val">${s.waist}<small>cm</small></span>`  : ''}
-          ${s.bf     ? `<span class="body-hist-val">${s.bf}<small>%</small></span>`      : ''}
+          ${s.weight != null ? `<span class="body-hist-val">${s.weight}<small>kg</small></span>` : ''}
+          ${s.muscle != null ? `<span class="body-hist-val">${s.muscle}<small>肌</small></span>` : ''}
+          ${s.bf     != null ? `<span class="body-hist-val">${s.bf}<small>%</small></span>`     : ''}
         </div>
       </div>`;
     });
     h += `</div>`;
   }
 
-  if (bodyStats.length >= 2) {
-    const f = bodyStats[0], l = bodyStats[bodyStats.length-1];
-    const wd  = f.weight && l.weight ? (l.weight - f.weight).toFixed(1) : null;
-    const wad = f.waist  && l.waist  ? (l.waist  - f.waist ).toFixed(1) : null;
-    if (wd || wad) {
-      h += `<div class="stats-box" style="margin-top:16px"><div class="stats-title">变化趋势</div><div class="stats-grid">`;
-      if (wd) {
-        const wdc = parseFloat(wd) <= 0 ? 'var(--green)' : 'var(--red)';
-        h += `<div class="stat-item"><div class="stat-num" style="color:${wdc}">${parseFloat(wd)>0?'+':''}${wd}</div><div class="stat-lbl">体重(kg)</div></div>`;
-      }
-      if (wad) {
-        const wadc = parseFloat(wad) <= 0 ? 'var(--green)' : 'var(--red)';
-        h += `<div class="stat-item"><div class="stat-num" style="color:${wadc}">${parseFloat(wad)>0?'+':''}${wad}</div><div class="stat-lbl">腰围(cm)</div></div>`;
-      }
-      h += `</div></div>`;
-    }
-  }
   el.innerHTML = h;
+
+  // ── 绘图（DOM 已挂载后执行）──
+  if (points.length >= 2) drawChart(points, metric);
+}
+
+function drawChart(points, metric) {
+  const canvas = document.getElementById('bodyChart');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.offsetWidth  || canvas.parentElement.clientWidth - 32;
+  const H   = 160;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const textColor   = isDark ? '#AAA8A4' : '#888';
+  const gridColor   = isDark ? '#2E2E35' : '#E0DDD6';
+  const dotColor    = metric.color.replace('var(--red)','#E8453C').replace('var(--blue)','#3A8EE6')
+                               .replace('var(--yellow)','#F7C048').replace('var(--green)','#4DC85A');
+
+  const vals   = points.map(p => p[metric.key]);
+  const minV   = Math.min(...vals);
+  const maxV   = Math.max(...vals);
+  const range  = maxV - minV || 1;
+  const pad    = { top:20, bottom:28, left:38, right:16 };
+  const cW     = W - pad.left - pad.right;
+  const cH     = H - pad.top  - pad.bottom;
+
+  const xOf = i => pad.left + (i / (points.length - 1)) * cW;
+  const yOf = v => pad.top  + (1 - (v - minV) / range) * cH;
+
+  // 水平网格线（3条）
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth   = 1;
+  [0, 0.5, 1].forEach(t => {
+    const y = pad.top + t * cH;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
+    const v = (maxV - t * range).toFixed(1);
+    ctx.fillStyle = textColor;
+    ctx.font = `10px 'JetBrains Mono', monospace`;
+    ctx.textAlign = 'right';
+    ctx.fillText(v, pad.left - 4, y + 3.5);
+  });
+
+  // X 轴日期标签（首/末/中间最多3个）
+  ctx.textAlign = 'center';
+  const labelIdx = points.length <= 3
+    ? points.map((_,i) => i)
+    : [0, Math.floor((points.length-1)/2), points.length-1];
+  labelIdx.forEach(i => {
+    ctx.fillStyle = textColor;
+    ctx.font = `10px 'JetBrains Mono', monospace`;
+    ctx.fillText(points[i].date.slice(5), xOf(i), H - 6);
+  });
+
+  // 折线
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
+  grad.addColorStop(0, dotColor + '55');
+  grad.addColorStop(1, dotColor + '00');
+
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    i === 0 ? ctx.moveTo(xOf(i), yOf(p[metric.key])) : ctx.lineTo(xOf(i), yOf(p[metric.key]));
+  });
+  ctx.strokeStyle = dotColor;
+  ctx.lineWidth   = 2;
+  ctx.lineJoin    = 'round';
+  ctx.stroke();
+
+  // 填充渐变（重新描一次路径加底边）
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    i === 0 ? ctx.moveTo(xOf(i), yOf(p[metric.key])) : ctx.lineTo(xOf(i), yOf(p[metric.key]));
+  });
+  ctx.lineTo(xOf(points.length-1), pad.top + cH);
+  ctx.lineTo(xOf(0), pad.top + cH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // 数据点 + 最后一个值标注
+  points.forEach((p, i) => {
+    const x = xOf(i), y = yOf(p[metric.key]);
+    ctx.beginPath();
+    ctx.arc(x, y, i === points.length-1 ? 4 : 3, 0, Math.PI*2);
+    ctx.fillStyle = dotColor;
+    ctx.fill();
+    if (i === points.length-1) {
+      ctx.fillStyle = dotColor;
+      ctx.font = `bold 11px 'JetBrains Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(p[metric.key] + metric.unit, x, y - 10);
+    }
+  });
 }
 
 function addBodyStat() {
   const w  = document.getElementById('bw').value;
-  const wa = document.getElementById('bwa').value;
+  const m  = document.getElementById('bm').value;
   const bf = document.getElementById('bbf').value;
-  if (!w && !wa && !bf) return;
-  const entry = {date:todayStr(), weight:parseFloat(w)||null, waist:parseFloat(wa)||null, bf:parseFloat(bf)||null};
+  if (!w && !m && !bf) return;
+  const entry = {
+    date:   todayStr(),
+    weight: parseFloat(w)  || null,
+    muscle: parseFloat(m)  || null,
+    bf:     parseFloat(bf) || null,
+  };
   bodyStats = bodyStats.filter(s => s.date !== entry.date);
   bodyStats.push(entry);
   bodyStats.sort((a,b) => a.date.localeCompare(b.date));
