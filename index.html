@@ -697,13 +697,8 @@ function getMostRecentDateForDayId(dayId) {
     .reverse();
   if (relevant.length > 0) return relevant[0].slice(0, 10);
 
-  // 兜底：按星期推算最近的对应日期
-  const today = new Date();
-  let diff = today.getDay() - tmpl.dow;
-  if (diff < 0) diff += 7;
-  const result = new Date(today);
-  result.setDate(today.getDate() - diff);
-  return dateStr(result);
+  // 兜底：没有历史记录时直接返回今天
+  return todayStr();
 }
 
 function getExercises(dayId) {
