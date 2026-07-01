@@ -6,16 +6,15 @@
 <!-- Apple PWA 必备 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CUT训练">
+<meta name="apple-mobile-web-app-title" content="LEAN训练">
 <meta name="mobile-web-app-capable" content="yes">
 <!-- 根据系统主题动态设定 theme-color，由 JS 控制 -->
 <meta name="theme-color" id="themeColor" content="#1C1C22">
-<title>CUT · 训练追踪</title>
+<title>LEAN · 训练追踪</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 /* ===== 主题变量 ===== */
 :root {
-  /* 深色主题（默认） — 比原版稍亮，提升可读性 */
   --bg:      #1C1C22;
   --card:    #242429;
   --border:  #2E2E35;
@@ -29,6 +28,7 @@
   --blue:    #3A8EE6;
   --green:   #4DC85A;
   --yellow:  #F7C048;
+  --purple:  #A855F7;
   --shadow:  0 2px 12px rgba(0,0,0,0.4);
   --safe-top: env(safe-area-inset-top, 20px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -50,6 +50,7 @@
     --blue:    #2468B4;
     --green:   #2E9E3A;
     --yellow:  #C98A00;
+    --purple:  #8B3DB5;
     --shadow:  0 2px 12px rgba(0,0,0,0.10);
     color-scheme: light;
   }
@@ -147,10 +148,10 @@ input:focus { outline: none; border-color: var(--red) !important; }
 .tab-content.active { display: block; }
 
 /* ===== Day selector ===== */
-.day-selector { display: flex; gap: 8px; margin-bottom: 16px; }
+.day-selector { display: flex; gap: 6px; margin-bottom: 12px; }
 .day-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  gap: 4px; padding: 12px 0; border-radius: 12px;
+  gap: 4px; padding: 10px 0; border-radius: 12px;
   border: 2px solid var(--border2);
   transition: all 0.2s; background: var(--card);
   box-shadow: var(--shadow);
@@ -159,12 +160,25 @@ input:focus { outline: none; border-color: var(--red) !important; }
   background: color-mix(in srgb, var(--c) 10%, var(--card));
   border-color: var(--c);
 }
-.day-btn .emoji  { font-size: 18px; }
+.day-btn .emoji  { font-size: 16px; }
 .day-btn .d-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--text4);
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--text4);
 }
 .day-btn.active .d-label { color: var(--c); }
+
+/* ===== Variant toggle ===== */
+.variant-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+.var-btn {
+  flex: 1; padding: 8px 0; border-radius: 8px;
+  border: 1px solid var(--border2); background: var(--card);
+  font-size: 12px; font-weight: 600; color: var(--text4);
+  transition: all 0.2s;
+}
+.var-btn.active {
+  background: color-mix(in srgb, var(--c) 12%, var(--card));
+  border-color: var(--c); color: var(--c);
+}
 
 /* ===== Section header ===== */
 .section-hdr { border-left: 3px solid var(--c); padding-left: 12px; margin-bottom: 16px; }
@@ -358,7 +372,7 @@ input:focus { outline: none; border-color: var(--red) !important; }
 <div class="header">
   <div class="header-top">
     <div>
-      <div class="brand" id="weekLabel">CUT · WEEK 1/10</div>
+      <div class="brand" id="weekLabel">LEAN · WEEK 1/12</div>
       <h1>训练追踪</h1>
     </div>
     <button class="quick-btn off" id="quickBtn" onclick="toggleQuick()">📋 完整</button>
@@ -389,16 +403,15 @@ input:focus { outline: none; border-color: var(--red) !important; }
   <div class="tab-content" id="tab-progress"></div>
   <div class="tab-content" id="tab-body"></div>
 </div>
-<div class="footer">XINHAO · CUT PHASE · 10 WEEKS · 脊柱友好方案</div>
+<div class="footer">XINHAO · LEAN BULK · 12 WEEKS · 脊柱友好方案</div>
 
 <script>
 // ─── PWA 清单 & Service Worker ────────────────────────────
 (function initPWA() {
-  // 注入 Web App Manifest（兼容 Android/Chrome）
   const manifest = {
-    name: "CUT · 训练追踪",
-    short_name: "CUT训练",
-    description: "Xinhao 10周减脂训练追踪",
+    name: "LEAN · 训练追踪",
+    short_name: "LEAN训练",
+    description: "Xinhao 12周精益增肌训练追踪",
     start_url: ".",
     display: "standalone",
     orientation: "portrait",
@@ -417,10 +430,9 @@ input:focus { outline: none; border-color: var(--red) !important; }
   link.rel = 'manifest'; link.href = url;
   document.head.appendChild(link);
 
-  // 注册 Service Worker（offline 支持）
   if ('serviceWorker' in navigator) {
     const swCode = `
-const CACHE='cut-v1';
+const CACHE='lean-v1';
 const ASSETS=['/'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
@@ -465,85 +477,134 @@ function dismissHint() {
 showInstallHintIfNeeded();
 
 // ─── DATA ─────────────────────────────────────────────────
-const PROGRAM_START = "2026-03-30";
-const TOTAL_WEEKS   = 10;
-const DAY_COLORS    = {1:"#E8453C", 2:"#3A8EE6", 3:"#4DC85A", 4:"#F7C048"};
+const PROGRAM_START = "2026-07-01";
+const TOTAL_WEEKS   = 12;
+const DAY_COLORS    = {1:"#E8453C", 2:"#3A8EE6", 3:"#4DC85A", 4:"#F7C048", 5:"#A855F7"};
 
+// D4/D5 使用 { gym: {...}, home: {...} } 双版本结构
 const EXERCISES = {
   1: {
     title:"上肢推 · 胸肩三头", icon:"💪",
     exercises:[
-      {id:"bp",  name:"平板杠铃卧推",    sets:4, reps:"6-8",    rest:"2-3min", note:"保持大重量，维持力量",      tracked:true},
-      {id:"idp", name:"上斜哑铃卧推",    sets:3, reps:"8-10",   rest:"90s",    note:"控制离心，挤压上胸",        tracked:true},
-      {id:"sp",  name:"坐姿哑铃肩推",    sets:3, reps:"8-10",   rest:"90s",    note:"核心收紧",                  tracked:true},
-      {id:"fly", name:"龙门架夹胸",      sets:3, reps:"12-15",  rest:"60s",    note:"顶峰收缩2秒",               tracked:true},
-      {id:"lat", name:"侧平举(递减组)",  sets:3, reps:"12→10→8",rest:"60s",    note:"最后一组力竭",              tracked:true},
-      {id:"tri", name:"绳索下压+臂屈伸", sets:3, reps:"12+10",  rest:"60s",    note:"超级组",                    tracked:true},
+      {id:"bp",   name:"平板杠铃卧推",    sets:4, reps:"5-7",       rest:"3min",   note:"主项大重量，渐进超负荷为首要目标",  tracked:true},
+      {id:"idp",  name:"上斜哑铃卧推",    sets:4, reps:"8-10",      rest:"90s",    note:"控制离心2秒，挤压上胸顶峰1秒",      tracked:true},
+      {id:"sp",   name:"坐姿哑铃肩推",    sets:4, reps:"8-10",      rest:"90s",    note:"肘部略向前，核心收紧全程",           tracked:true},
+      {id:"fly",  name:"龙门架夹胸",      sets:3, reps:"10-12",     rest:"60s",    note:"顶峰收缩2秒，感受胸肌内侧",         tracked:true},
+      {id:"lat",  name:"侧平举(递减组)",  sets:4, reps:"12→10→8→6", rest:"60s",    note:"4组递减，最后一组力竭",             tracked:true},
+      {id:"tri",  name:"绳索下压",        sets:3, reps:"10-12",     rest:"60s",    note:"肘关节固定，感受三头发力",           tracked:true},
+      {id:"dip",  name:"双杠臂屈伸",      sets:3, reps:"8-12",      rest:"60s",    note:"身体微前倾增加胸肌参与，腰椎无压力", tracked:false},
     ]
   },
   2: {
-    title:"下肢 · 脊柱友好+核心", icon:"🦵",
+    title:"下肢 · 脊柱友好+臀腿", icon:"🦵",
     exercises:[
-      {id:"lp",  name:"腿举机",        sets:4, reps:"10-12", rest:"90s", note:"⚠️ 背贴靠背，臀不离座",      tracked:true},
-      {id:"ht",  name:"臀推 Hip Thrust",sets:4,reps:"10-12", rest:"90s", note:"臀部顶峰挤压2秒",            tracked:true},
-      {id:"le",  name:"腿屈伸",        sets:3, reps:"12-15", rest:"60s", note:"孤立股四，零腰椎压力",        tracked:true},
-      {id:"lc",  name:"俯卧腿弯举",    sets:3, reps:"12-15", rest:"60s", note:"慢速控制离心",               tracked:true},
-      {id:"bsq", name:"自重深蹲",      sets:3, reps:"15-20", rest:"45s", note:"保持动作模式",               tracked:false},
-      {id:"db",  name:"Dead Bug",      sets:3, reps:"10/侧", rest:"30s", note:"⭐ 腰椎康复黄金动作",         tracked:false},
-      {id:"bd",  name:"鸟狗式 Bird Dog",sets:3,reps:"10/侧", rest:"30s", note:"⭐ McGill护腰动作",           tracked:false},
+      {id:"lp",   name:"腿举机",           sets:4, reps:"8-10",   rest:"2min",   note:"⚠️ 背贴靠背，臀不离座，大重量渐进",   tracked:true},
+      {id:"ht",   name:"臀推 Hip Thrust",   sets:4, reps:"8-10",   rest:"90s",    note:"臀部顶峰挤压2秒，可加弹力带增加阻力", tracked:true},
+      {id:"le",   name:"腿屈伸",           sets:3, reps:"10-12",  rest:"60s",    note:"孤立股四，末端停留1秒",               tracked:true},
+      {id:"lc",   name:"俯卧腿弯举",       sets:4, reps:"10-12",  rest:"60s",    note:"腘绳肌慢速离心3秒，重点加强",         tracked:true},
+      {id:"slr",  name:"单腿腿举",         sets:3, reps:"10/侧",  rest:"60s",    note:"弥补双侧力量不平衡",                   tracked:true},
+      {id:"db",   name:"Dead Bug",         sets:3, reps:"12/侧",  rest:"30s",    note:"⭐ 腰椎稳定核心，下背贴地全程",         tracked:false},
+      {id:"bd",   name:"鸟狗式 Bird Dog",   sets:3, reps:"12/侧",  rest:"30s",    note:"⭐ 对侧四肢伸展，停留2秒",              tracked:false},
     ]
   },
   3: {
     title:"上肢拉 · 背部二头", icon:"🔥",
     exercises:[
-      {id:"pu",  name:"引体向上",          sets:4, reps:"6-10",  rest:"2min", note:"宽握，顶峰挤压背阔肌",     tracked:true},
-      {id:"csr", name:"胸部支撑划船",      sets:4, reps:"8-10",  rest:"90s",  note:"趴在斜凳上，卸载腰椎",     tracked:true},
-      {id:"sar", name:"单臂哑铃划船",      sets:3, reps:"10-12", rest:"60s",  note:"充分拉伸+收缩",            tracked:true},
-      {id:"fp",  name:"绳索面拉",          sets:3, reps:"15-20", rest:"45s",  note:"后束+肩袖健康",            tracked:true},
-      {id:"spd", name:"直臂下压",          sets:3, reps:"12-15", rest:"60s",  note:"背阔肌孤立发力",           tracked:true},
-      {id:"cur", name:"锤式弯举+杠铃弯举", sets:3, reps:"10+10", rest:"60s",  note:"超级组",                  tracked:true},
+      {id:"pu",   name:"引体向上",         sets:4, reps:"5-8",    rest:"2-3min", note:"加重/辅助均可，顶峰挤压背阔肌1秒",   tracked:true},
+      {id:"csr",  name:"胸部支撑划船",     sets:4, reps:"8-10",   rest:"90s",    note:"趴在斜凳上完全卸载腰椎，全程控制",   tracked:true},
+      {id:"sar",  name:"单臂哑铃划船",     sets:4, reps:"8-10",   rest:"60s",    note:"充分伸展肩胛骨→充分回缩，重量优先",  tracked:true},
+      {id:"fp",   name:"绳索面拉",         sets:4, reps:"15-20",  rest:"45s",    note:"后束+肩袖健康，每次必做不减",         tracked:true},
+      {id:"spd",  name:"直臂下压",         sets:3, reps:"12-15",  rest:"60s",    note:"背阔肌孤立发力，手臂尽量伸直",        tracked:true},
+      {id:"cur",  name:"锤式弯举",         sets:3, reps:"10-12",  rest:"60s",    note:"肱肌+肱桡肌，哑铃中立握",            tracked:true},
+      {id:"bcur", name:"杠铃弯举",         sets:3, reps:"8-10",   rest:"60s",    note:"二头峰值收缩，肘部不上抬",            tracked:true},
     ]
   },
   4: {
-    title:"核心专项 + HIIT", icon:"⚡",
-    exercises:[
-      {id:"hl", name:"悬垂举腿",    sets:4, reps:"10-15", rest:"60s", note:"骨盆后倾，不摆荡",              tracked:false},
-      {id:"rc", name:"反向卷腹",    sets:4, reps:"15",    rest:"45s", note:"专注下腹，骨盆上卷",            tracked:false},
-      {id:"mc", name:"McGill卷腹",  sets:3, reps:"10-12", rest:"30s", note:"⭐ 腰椎友好，仅头肩离地",       tracked:false},
-      {id:"pp", name:"Pallof Press",sets:3, reps:"10/侧", rest:"45s", note:"抗旋转核心",                    tracked:false},
-    ],
-    cardio:"🏃 HIIT冲刺跑：热身5min → (冲刺30s+慢跑90s)×8轮 → 放松5min"
+    gym: {
+      title:"肩臂专项 · 周五补强", icon:"🎯",
+      exercises:[
+        {id:"f_fp",   name:"绳索面拉",       sets:4, reps:"15-20",     rest:"45s", note:"后束+肩袖，轻重量高次数，每次必练",   tracked:true},
+        {id:"f_lat",  name:"侧平举(递减组)",  sets:4, reps:"12→10→8→6", rest:"60s", note:"严格动作，三角肌中束孤立",           tracked:true},
+        {id:"f_tri",  name:"绳索下压",        sets:4, reps:"10-12",     rest:"60s", note:"肘关节固定，三头孤立发力",           tracked:true},
+        {id:"f_dip",  name:"双杠臂屈伸",      sets:3, reps:"8-12",      rest:"60s", note:"身体微前倾，腰椎无压力",             tracked:false},
+        {id:"f_cur",  name:"锤式弯举",        sets:3, reps:"10-12",     rest:"60s", note:"肱肌+肱桡肌",                        tracked:true},
+        {id:"f_bcur", name:"杠铃弯举",        sets:3, reps:"8-10",      rest:"60s", note:"二头峰值收缩，肘部不上抬",           tracked:true},
+      ]
+    },
+    home: {
+      title:"居家有氧 · 轻松恢复", icon:"🏃",
+      exercises:[
+        {id:"f_mc",  name:"McGill卷腹",     sets:3, reps:"15",    rest:"30s", note:"⭐ 腰椎友好，热身动作",    tracked:false},
+        {id:"f_bd",  name:"鸟狗式 Bird Dog", sets:3, reps:"12/侧", rest:"30s", note:"对侧四肢伸展，停留2秒", tracked:false},
+        {id:"f_db",  name:"Dead Bug",       sets:3, reps:"12/侧", rest:"30s", note:"核心激活，下背贴地",     tracked:false},
+        {id:"f_mt",  name:"登山者式",        sets:3, reps:"20/侧", rest:"30s", note:"核心收紧，节奏稳定",     tracked:false},
+        {id:"f_pu",  name:"俯卧撑",          sets:3, reps:"15-20", rest:"60s", note:"居家推力补充",           tracked:false},
+      ],
+      cardio:"🏃 30-40min 轻松慢跑，配速可说话，为周日长跑保留体力"
+    }
+  },
+  5: {
+    gym: {
+      title:"核心专项 · 健身房版", icon:"⚡",
+      exercises:[
+        {id:"s_hl",  name:"悬垂举腿",      sets:4, reps:"12-15", rest:"60s", note:"骨盆后倾后再抬腿，不摆荡，下腹专攻", tracked:false},
+        {id:"s_rc",  name:"反向卷腹",      sets:4, reps:"15-20", rest:"45s", note:"骨盆上卷，下腹最强孤立动作",         tracked:false},
+        {id:"s_alr", name:"仰卧直腿上举",  sets:3, reps:"12-15", rest:"45s", note:"腰椎贴地全程，脚跟不触地",           tracked:false},
+        {id:"s_mc",  name:"McGill卷腹",    sets:3, reps:"12-15", rest:"30s", note:"⭐ 腰椎友好，仅头肩离地",            tracked:false},
+        {id:"s_pp",  name:"Pallof Press",  sets:3, reps:"12/侧", rest:"45s", note:"抗旋转核心稳定",                     tracked:false},
+        {id:"s_cc",  name:"缆绳卷腹",      sets:3, reps:"12-15", rest:"45s", note:"下拉时专注腹直肌收缩，不是髋屈",     tracked:false},
+      ]
+    },
+    home: {
+      title:"居家核心 · 健腹轮版", icon:"⚡",
+      exercises:[
+        {id:"s_ab",   name:"腹肌滚轮(跪姿→站姿)", sets:4, reps:"8-12",   rest:"60s", note:"跪姿打好基础再过渡站姿，腰椎始终贴合", tracked:false},
+        {id:"s_alr2", name:"仰卧直腿上举",         sets:4, reps:"12-15",  rest:"45s", note:"腰椎贴地全程，脚跟不触地，专攻下腹",   tracked:false},
+        {id:"s_rc2",  name:"反向卷腹",             sets:4, reps:"15-20",  rest:"45s", note:"骨盆上卷，下腹最强孤立",               tracked:false},
+        {id:"s_mc2",  name:"McGill卷腹",           sets:3, reps:"12-15",  rest:"30s", note:"⭐ 腰椎友好，仅头肩离地",              tracked:false},
+        {id:"s_mt",   name:"登山者式",             sets:3, reps:"20/侧",  rest:"30s", note:"核心收紧，腰臀不塌陷，节奏稳定",       tracked:false},
+        {id:"s_pu2",  name:"俯卧撑",               sets:3, reps:"15-20",  rest:"60s", note:"居家补充推力训练，肘外展夹胸发力",      tracked:false},
+      ],
+      cardio:"🏃 训练后：20min 轻松慢跑或快走"
+    }
   }
 };
 
 const QUICK_IDS = {
-  1:["bp","idp","sp","lat"],
-  2:["lp","ht","le","db"],
-  3:["pu","csr","sar","fp"],
-  4:["hl","rc","mc"]
+  1:    ["bp","idp","sp","lat"],
+  2:    ["lp","ht","lc","db"],
+  3:    ["pu","csr","sar","fp"],
+  "4g": ["f_fp","f_lat","f_tri","f_cur"],
+  "4h": ["f_mc","f_db","f_mt"],
+  "5g": ["s_hl","s_rc","s_alr","s_mc"],
+  "5h": ["s_ab","s_alr2","s_rc2","s_mc2"]
 };
 const WEEK_TPL = [
   {dow:1,label:"周一",dayId:1},
-  {dow:2,label:"周二",dayId:null,note:"5km跑"},
+  {dow:2,label:"周二",dayId:null,note:"5km跑 / 主动恢复"},
   {dow:3,label:"周三",dayId:2},
-  {dow:4,label:"周四",dayId:null,note:"休息"},
-  {dow:5,label:"周五",dayId:3},
-  {dow:6,label:"周六",dayId:4},
-  {dow:0,label:"周日",dayId:null,note:"长跑/休息"}
+  {dow:4,label:"周四",dayId:3},
+  {dow:5,label:"周五",dayId:4},
+  {dow:6,label:"周六",dayId:5},
+  {dow:0,label:"周日",dayId:null,note:"10km长跑 / 休息"}
 ];
 
 // ─── STATE ────────────────────────────────────────────────
 let logs      = JSON.parse(localStorage.getItem("xh-logs")  || "{}");
 let bodyStats = JSON.parse(localStorage.getItem("xh-body")  || "[]");
 let quickMode = JSON.parse(localStorage.getItem("xh-quick") || "false");
+// gymMode: true = 健身房版, false = 居家版；仅对 D4/D5 有效
+let _gmRaw    = JSON.parse(localStorage.getItem("xh-gym")   || "{}");
+let gymMode   = {4: !!(_gmRaw[4] || _gmRaw["4"]), 5: !!(_gmRaw[5] || _gmRaw["5"])};
 let currentTab    = "train";
 let selectedDayId = null;
 let selectedDate  = todayStr();
 let viewWeek      = getWeekNum(new Date());
 let editingWeight = null;
 
-function save()     { localStorage.setItem("xh-logs",  JSON.stringify(logs)); }
-function saveBody() { localStorage.setItem("xh-body",  JSON.stringify(bodyStats)); }
+function save()        { localStorage.setItem("xh-logs",  JSON.stringify(logs)); }
+function saveBody()    { localStorage.setItem("xh-body",  JSON.stringify(bodyStats)); }
+function saveGymMode() { localStorage.setItem("xh-gym",   JSON.stringify(gymMode)); }
 
 // ─── HELPERS ──────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0,10); }
@@ -563,36 +624,79 @@ function getTodayDayId() {
   const t   = WEEK_TPL.find(w => w.dow === dow);
   return t?.dayId || null;
 }
-function getExercises(dayId) {
-  if (!dayId) return [];
-  const full = EXERCISES[dayId].exercises;
-  if (!quickMode) return full;
-  const qids = QUICK_IDS[dayId];
-  return full.filter(e => qids.includes(e.id)).map(e => ({...e, sets: Math.min(e.sets, 3)}));
+
+// 返回 D4/D5 的变体后缀（'g' 健身房 / 'h' 居家），其他 dayId 返回 ''
+function variantSuffix(dayId) {
+  if (dayId !== 4 && dayId !== 5) return '';
+  return gymMode[dayId] ? 'g' : 'h';
 }
-// 找到某个 dayId 最近一次对应的日历日期
+
+// 当前 selectedDate + dayId 对应的 log 键
+function logKey(dayId) {
+  return `${selectedDate}-d${dayId}${variantSuffix(dayId)}`;
+}
+
+// 返回当前 gymMode 下的训练数据对象
+function getDayData(dayId) {
+  const ex = EXERCISES[dayId];
+  if (!ex) return null;
+  if (ex.gym !== undefined) return gymMode[dayId] ? ex.gym : ex.home;
+  return ex;
+}
+
+// 从周视图跳转时，自动检测该日期已打卡的版本
+function autoDetectVariant(dayId, date) {
+  if (dayId !== 4 && dayId !== 5) return;
+  const gComp = _compVariant(date, dayId, 'g', EXERCISES[dayId].gym);
+  const hComp = _compVariant(date, dayId, 'h', EXERCISES[dayId].home);
+  if (gComp > 0 && hComp === 0)       gymMode[dayId] = true;
+  else if (hComp > 0 && gComp === 0)  gymMode[dayId] = false;
+}
+
+// 修复：优先查找 logs 中有数据的最近日期，兜底才按星期推算
 function getMostRecentDateForDayId(dayId) {
   const tmpl = WEEK_TPL.find(w => w.dayId === dayId);
   if (!tmpl) return todayStr();
-  const targetDow = tmpl.dow;
+
+  // 扫描 logs，找所有属于该 dayId 的键（含两种变体后缀）
+  const prefix = `-d${dayId}`;
+  const relevant = Object.keys(logs)
+    .filter(k => {
+      const rest = k.slice(10); // 去掉 "YYYY-MM-DD"
+      return rest === prefix || rest === `${prefix}g` || rest === `${prefix}h`;
+    })
+    .sort()
+    .reverse();
+  if (relevant.length > 0) return relevant[0].slice(0, 10);
+
+  // 兜底：按星期推算最近的对应日期
   const today = new Date();
-  let diff = today.getDay() - targetDow;
+  let diff = today.getDay() - tmpl.dow;
   if (diff < 0) diff += 7;
   const result = new Date(today);
   result.setDate(today.getDate() - diff);
   return dateStr(result);
 }
 
+function getExercises(dayId) {
+  const data = getDayData(dayId);
+  if (!data) return [];
+  const full = data.exercises;
+  if (!quickMode) return full;
+  const vs  = variantSuffix(dayId);
+  const key = vs ? `${dayId}${vs}` : dayId;
+  const qids = QUICK_IDS[key] || [];
+  return full.filter(e => qids.includes(e.id)).map(e => ({...e, sets: Math.min(e.sets, 3)}));
+}
+
 function isSetDone(dayId, exId, si) {
-  const k = `${selectedDate}-d${dayId}`;
-  return logs[k]?.[`${exId}-${si}`]?.done || false;
+  return logs[logKey(dayId)]?.[`${exId}-${si}`]?.done || false;
 }
 function getSetWeight(dayId, exId, si) {
-  const k = `${selectedDate}-d${dayId}`;
-  return logs[k]?.[`${exId}-${si}`]?.weight;
+  return logs[logKey(dayId)]?.[`${exId}-${si}`]?.weight;
 }
 function toggleSet(dayId, exId, si) {
-  const k = `${selectedDate}-d${dayId}`;
+  const k = logKey(dayId);
   if (!logs[k]) logs[k] = {};
   const ek = `${exId}-${si}`;
   if (logs[k][ek]) delete logs[k][ek];
@@ -600,19 +704,34 @@ function toggleSet(dayId, exId, si) {
   save(); renderTrain();
 }
 function setWeight(dayId, exId, si, val) {
-  const k = `${selectedDate}-d${dayId}`;
+  const k = logKey(dayId);
   if (!logs[k]) logs[k] = {};
   logs[k][`${exId}-${si}`] = {done:true, weight:parseFloat(val)||null};
   save(); editingWeight = null; renderTrain();
 }
-function getDayComp(date, dayId) {
-  const k = `${date}-d${dayId}`, log = logs[k];
+
+// 单变体完成率内部计算
+function _compVariant(date, dayId, suffix, data) {
+  if (!data) return 0;
+  const k   = `${date}-d${dayId}${suffix}`;
+  const log = logs[k];
   if (!log) return 0;
-  const exs   = getExercises(dayId);
-  const total = exs.reduce((s,e) => s + e.sets, 0);
+  const total = data.exercises.reduce((s,e) => s + e.sets, 0);
   const done  = Object.values(log).filter(v => v.done).length;
   return total > 0 ? Math.min(done/total, 1) : 0;
 }
+
+// D4/D5 取两个变体中较大的完成率（任意版本打卡都算）
+function getDayComp(date, dayId) {
+  if (dayId === 4 || dayId === 5) {
+    return Math.max(
+      _compVariant(date, dayId, 'g', EXERCISES[dayId].gym),
+      _compVariant(date, dayId, 'h', EXERCISES[dayId].home)
+    );
+  }
+  return _compVariant(date, dayId, '', EXERCISES[dayId]);
+}
+
 function getWeekComp(w) {
   const dates = getWeekDates(w);
   let tot = 0, comp = 0;
@@ -648,7 +767,7 @@ function toggleQuick() {
 // ─── RENDER ───────────────────────────────────────────────
 function render() {
   const w = getWeekNum(new Date());
-  document.getElementById('weekLabel').textContent = `CUT · WEEK ${w+1}/${TOTAL_WEEKS}`;
+  document.getElementById('weekLabel').textContent = `LEAN · WEEK ${w+1}/${TOTAL_WEEKS}`;
   if      (currentTab==='train')    renderTrain();
   else if (currentTab==='week')     renderWeek();
   else if (currentTab==='progress') renderProgress();
@@ -659,25 +778,39 @@ function renderTrain() {
   const el = document.getElementById('tab-train');
   const activeDayId = selectedDayId || getTodayDayId();
   const c = activeDayId ? DAY_COLORS[activeDayId] : '#666';
+
+  // ── D1-D5 选择按钮 ──
   let h = `<div class="day-selector">`;
-  [1,2,3,4].forEach(d => {
-    const act = activeDayId === d;
+  [1,2,3,4,5].forEach(d => {
+    const act  = activeDayId === d;
+    const data = getDayData(d);
     h += `<button class="day-btn${act?' active':''}" style="--c:${DAY_COLORS[d]}"
       onclick="selectedDayId=${d};selectedDate=getMostRecentDateForDayId(${d});renderTrain()">
-      <span class="emoji">${EXERCISES[d].icon}</span>
+      <span class="emoji">${data?.icon || '❓'}</span>
       <span class="d-label">D${d}</span>
     </button>`;
   });
   h += `</div>`;
 
-  if (activeDayId && EXERCISES[activeDayId]) {
-    const prog = EXERCISES[activeDayId];
+  // ── 周五/周六双版本切换 ──
+  if (activeDayId === 4 || activeDayId === 5) {
+    const isGym = gymMode[activeDayId];
+    h += `<div class="variant-toggle">
+      <button class="var-btn${isGym?' active':''}" style="--c:${c}"
+        onclick="gymMode[${activeDayId}]=true;saveGymMode();renderTrain()">🏋️ 健身房版</button>
+      <button class="var-btn${!isGym?' active':''}" style="--c:${c}"
+        onclick="gymMode[${activeDayId}]=false;saveGymMode();renderTrain()">🏠 居家版</button>
+    </div>`;
+  }
+
+  if (activeDayId && getDayData(activeDayId)) {
+    const data = getDayData(activeDayId);
     const exs  = getExercises(activeDayId);
     const displayDate = new Date(selectedDate + 'T12:00:00');
     const dateLabel = `${displayDate.getMonth()+1}月${displayDate.getDate()}日`;
     const isToday = selectedDate === todayStr();
     h += `<div class="section-hdr" style="--c:${c};border-left-color:${c}">
-      <h2>${prog.title}</h2>
+      <h2>${data.title}</h2>
       <div class="sub">${quickMode?'精简模式 · 核心动作':'完整训练'} · <span style="color:${c}">${isToday?'今天':dateLabel}</span></div>
     </div>`;
 
@@ -719,8 +852,8 @@ function renderTrain() {
       h += `</div></div>`;
     });
 
-    if (prog.cardio) {
-      h += `<div class="cardio-card"><div class="c-title">有氧</div><div class="c-body">${prog.cardio}</div></div>`;
+    if (data.cardio) {
+      h += `<div class="cardio-card"><div class="c-title">有氧</div><div class="c-body">${data.cardio}</div></div>`;
     }
   } else {
     const tmpl = WEEK_TPL.find(w => w.dow === new Date(selectedDate).getDay());
@@ -746,11 +879,19 @@ function renderWeek() {
     const tmpl    = WEEK_TPL.find(w => w.dow === d.getDay());
     const ds      = dateStr(d), isToday = ds === todayStr();
     const comp    = tmpl?.dayId ? getDayComp(ds, tmpl.dayId) : null;
-    const prog    = tmpl?.dayId ? EXERCISES[tmpl.dayId] : null;
+    // 显示标题时，若有打卡数据则自动检测版本，否则显示当前 gymMode 的版本标题
+    let prog = null;
+    if (tmpl?.dayId) {
+      autoDetectVariant(tmpl.dayId, ds);
+      prog = getDayData(tmpl.dayId);
+    }
     const dayColor= tmpl?.dayId ? DAY_COLORS[tmpl.dayId] : 'var(--text4)';
 
+    const clickAction = tmpl?.dayId
+      ? `selectedDate='${ds}';selectedDayId=${tmpl.dayId};autoDetectVariant(${tmpl.dayId},'${ds}');switchTab('train')`
+      : '';
     h += `<button class="week-day${isToday?' today':''}"
-      onclick="${tmpl?.dayId?`selectedDate='${ds}';selectedDayId=${tmpl.dayId};switchTab('train')`:''}"
+      onclick="${clickAction}"
       style="cursor:${tmpl?.dayId?'pointer':'default'}">
       <div style="display:flex;align-items:center;gap:10px;flex:1">
         <div class="week-dow" style="color:${isToday?'var(--red)':dayColor}">${tmpl?.label}</div>
@@ -774,7 +915,7 @@ function renderWeek() {
 function renderProgress() {
   const el   = document.getElementById('tab-progress');
   const curW = getWeekNum(new Date());
-  let h = `<div class="prog-title">10周训练进度</div>`;
+  let h = `<div class="prog-title">12周训练进度</div>`;
   for (let w = 0; w < TOTAL_WEEKS; w++) {
     const comp     = getWeekComp(w);
     const isCur    = w === curW, isPast = w < curW;
