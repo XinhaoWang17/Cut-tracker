@@ -518,11 +518,11 @@ const EXERCISES = {
   2: {
     title:"下肢 · 脊柱友好+臀腿", icon:"🦵",
     exercises:[
-      {id:"lp",   name:"腿举机",           sets:4, reps:"8-10",   rest:"2min",   note:"⚠️ 背贴靠背，臀不离座，大重量渐进",   tracked:true},
+      {id:"lp",   name:"背靠式深蹲器",       sets:4, reps:"8-10",   rest:"2min",   note:"⚠️ 背贴靠背，膝盖对准脚尖，卸载腰椎", tracked:true},
       {id:"ht",   name:"臀推 Hip Thrust",   sets:4, reps:"8-10",   rest:"90s",    note:"臀部顶峰挤压2秒，可加弹力带增加阻力", tracked:true},
       {id:"le",   name:"腿屈伸",           sets:3, reps:"10-12",  rest:"60s",    note:"孤立股四，末端停留1秒",               tracked:true},
       {id:"lc",   name:"俯卧腿弯举",       sets:4, reps:"10-12",  rest:"60s",    note:"腘绳肌慢速离心3秒，重点加强",         tracked:true},
-      {id:"slr",  name:"单腿腿举",         sets:3, reps:"10/侧",  rest:"60s",    note:"弥补双侧力量不平衡",                   tracked:true},
+      {id:"bsq",  name:"保加利亚分腿蹲",   sets:3, reps:"10/侧",  rest:"60s",    note:"后脚搭凳，前脚发力，腰椎轴向压力极低", tracked:true},
       {id:"db",   name:"Dead Bug",         sets:3, reps:"12/侧",  rest:"30s",    note:"⭐ 腰椎稳定核心，下背贴地全程",         tracked:false},
       {id:"bd",   name:"鸟狗式 Bird Dog",   sets:3, reps:"12/侧",  rest:"30s",    note:"⭐ 对侧四肢伸展，停留2秒",              tracked:false},
     ]
@@ -829,12 +829,10 @@ function renderTrain() {
   if (activeDayId && getDayData(activeDayId)) {
     const data = getDayData(activeDayId);
     const exs  = getExercises(activeDayId);
-    const displayDate = new Date(selectedDate + 'T12:00:00');
-    const dateLabel = `${displayDate.getMonth()+1}月${displayDate.getDate()}日`;
-    const isToday = selectedDate === todayStr();
+    const dayLabel = WEEK_TPL.find(t => t.dayId === activeDayId)?.label || '';
     h += `<div class="section-hdr" style="--c:${c};border-left-color:${c}">
       <h2>${data.title}</h2>
-      <div class="sub">${quickMode?'精简模式 · 核心动作':'完整训练'} · <span style="color:${c}">${isToday?'今天':dateLabel}</span></div>
+      <div class="sub">${quickMode?'精简模式 · 核心动作':'完整训练'} · <span style="color:${c}">${dayLabel}</span></div>
     </div>`;
 
     exs.forEach(ex => {
