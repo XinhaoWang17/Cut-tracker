@@ -260,6 +260,33 @@ input:focus { outline: none; border-color: var(--red) !important; }
   justify-content: center; padding: 60px 20px; text-align: center;
 }
 
+/* ===== Run card ===== */
+.run-card {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 14px; padding: 28px 20px;
+  background: var(--card); border-radius: 16px; margin-top: 8px;
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+}
+.run-icon { font-size: 44px; line-height: 1; }
+.run-title { font-size: 15px; font-weight: 600; color: var(--text2); text-align: center; }
+.run-done { font-size: 24px; font-weight: 700; color: var(--green); }
+.run-redo {
+  font-size: 12px; color: var(--text4);
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  padding: 4px 14px; cursor: pointer;
+}
+.run-input-row { display: flex; align-items: center; gap: 8px; }
+.run-dist-input {
+  width: 90px; font-size: 28px; font-weight: 700; text-align: center;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px 8px; color: var(--text1);
+}
+.run-unit { font-size: 20px; font-weight: 600; color: var(--text3); }
+.run-submit {
+  width: 100%; padding: 14px; font-size: 16px; font-weight: 700;
+  background: var(--blue); color: #fff; border: none; border-radius: 14px; cursor: pointer;
+}
+
 /* ===== Week view ===== */
 .week-nav {
   display: flex; justify-content: space-between; align-items: center;
@@ -623,9 +650,12 @@ let viewWeek      = getWeekNum(new Date());
 let editingWeight = null;
 let chartMetric   = localStorage.getItem("xh-chart-metric") || "weight";
 
+let runLogs = JSON.parse(localStorage.getItem("xh-runs") || "{}");
+
 function save()        { localStorage.setItem("xh-logs",  JSON.stringify(logs)); }
 function saveBody()    { localStorage.setItem("xh-body",  JSON.stringify(bodyStats)); }
 function saveGymMode() { localStorage.setItem("xh-gym",   JSON.stringify(gymMode)); }
+function saveRuns()    { localStorage.setItem("xh-runs",  JSON.stringify(runLogs)); }
 
 // ─── HELPERS ──────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0,10); }
@@ -731,6 +761,17 @@ function setWeight(dayId, exId, si, val) {
   if (!logs[k]) logs[k] = {};
   logs[k][`${exId}-${si}`] = {done:true, weight:parseFloat(val)||null};
   save(); editingWeight = null; renderTrain();
+}
+
+function logRun(date, dist) {
+  const d = parseFloat(dist);
+  if (!d || d <= 0) return;
+  runLogs[date] = d;
+  saveRuns(); renderTrain();
+}
+function deleteRun(date) {
+  delete runLogs[date];
+  saveRuns(); renderTrain();
 }
 
 // 单变体完成率内部计算
@@ -878,11 +919,35 @@ function renderTrain() {
     }
   } else {
     const tmpl = WEEK_TPL.find(w => w.dow === new Date(selectedDate).getDay());
-    h += `<div class="rest-day">
-      <div style="font-size:40px;margin-bottom:12px">🏃</div>
-      <div style="font-size:16px;font-weight:600;color:var(--text3)">${tmpl?.note||'休息日'}</div>
-      <div style="font-size:12px;color:var(--text4);margin-top:8px">点击上方选择训练日 · 或享受恢复</div>
-    </div>`;
+    const isRunDay = tmpl?.note && tmpl.note.includes('跑');
+    if (isRunDay) {
+      const defaultDist = tmpl.note.match(/(\d+)km/)?.[1] || '5';
+      const logged = runLogs[selectedDate];
+      if (logged) {
+        h += `<div class="run-card">
+          <div class="run-icon">🏃</div>
+          <div class="run-title">${tmpl.note}</div>
+          <div class="run-done">已打卡 ${logged} km ✓</div>
+          <button class="run-redo" onclick="deleteRun('${selectedDate}')">重新记录</button>
+        </div>`;
+      } else {
+        h += `<div class="run-card">
+          <div class="run-icon">🏃</div>
+          <div class="run-title">${tmpl.note}</div>
+          <div class="run-input-row">
+            <input type="number" inputmode="decimal" id="runDist" class="run-dist-input" placeholder="距离" value="${defaultDist}">
+            <span class="run-unit">km</span>
+          </div>
+          <button class="run-submit" onclick="logRun('${selectedDate}',document.getElementById('runDist').value)">完成打卡</button>
+        </div>`;
+      }
+    } else {
+      h += `<div class="rest-day">
+        <div style="font-size:40px;margin-bottom:12px">😴</div>
+        <div style="font-size:16px;font-weight:600;color:var(--text3)">${tmpl?.note||'休息日'}</div>
+        <div style="font-size:12px;color:var(--text4);margin-top:8px">点击上方选择训练日 · 或享受恢复</div>
+      </div>`;
+    }
   }
   el.innerHTML = h;
 }
@@ -927,6 +992,8 @@ function renderWeek() {
         <div class="mini-bar"><div class="mini-bar-fill" style="width:${comp*100}%;background:${barColor}"></div></div>
         <span class="comp-pct${comp>=1?' full':''}">${Math.round(comp*100)}%</span>
       </div>`;
+    } else if (!tmpl?.dayId && tmpl?.note?.includes('跑') && runLogs[ds]) {
+      h += `<span class="comp-pct full">${runLogs[ds]}km</span>`;
     }
     h += `</button>`;
   });
@@ -966,6 +1033,18 @@ function renderProgress() {
       <div class="stat-item"><div class="stat-num">${sessions}</div><div class="stat-lbl">训练次数</div></div>
       <div class="stat-item"><div class="stat-num">${totalSets}</div><div class="stat-lbl">完成组数</div></div>
       <div class="stat-item"><div class="stat-num">${wtDisplay}</div><div class="stat-lbl">总负重(kg)</div></div>
+    </div>
+  </div>`;
+
+  const runEntries = Object.values(runLogs).filter(v => v > 0);
+  const totalKm = runEntries.reduce((s, v) => s + v, 0);
+  const avgKm = runEntries.length ? (totalKm / runEntries.length).toFixed(1) : '—';
+  h += `<div class="stats-box" style="margin-top:12px">
+    <div class="stats-title">跑步记录</div>
+    <div class="stats-grid">
+      <div class="stat-item"><div class="stat-num">${runEntries.length}</div><div class="stat-lbl">跑步次数</div></div>
+      <div class="stat-item"><div class="stat-num">${totalKm.toFixed(1)}</div><div class="stat-lbl">总里程(km)</div></div>
+      <div class="stat-item"><div class="stat-num">${avgKm}</div><div class="stat-lbl">平均(km)</div></div>
     </div>
   </div>`;
   el.innerHTML = h;
