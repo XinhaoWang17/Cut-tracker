@@ -453,7 +453,7 @@ input:focus { outline: none; border-color: var(--red) !important; }
 <div class="footer">XINHAO · LEAN BULK · 12 WEEKS · 脊柱友好方案</div>
 
 <script>
-// ─── PWA 清单 & Service Worker ────────────────────────────
+// ─── PWA 清单 ─────────────────────────────────────────────
 (function initPWA() {
   const manifest = {
     name: "LEAN · 训练追踪",
@@ -476,28 +476,6 @@ input:focus { outline: none; border-color: var(--red) !important; }
   const link = document.createElement('link');
   link.rel = 'manifest'; link.href = url;
   document.head.appendChild(link);
-
-  if ('serviceWorker' in navigator) {
-    const swCode = `
-const CACHE='lean-v1';
-const ASSETS=['/'];
-self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
-  self.skipWaiting();
-});
-self.addEventListener('activate',e=>{
-  e.waitUntil(clients.claim());
-});
-self.addEventListener('fetch',e=>{
-  e.respondWith(
-    caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('',{status:503})))
-  );
-});
-`;
-    const swBlob = new Blob([swCode], {type:'application/javascript'});
-    const swUrl  = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swUrl).catch(()=>{});
-  }
 })();
 
 // ─── 主题色同步 ────────────────────────────────────────────
@@ -658,29 +636,56 @@ function saveGymMode() { localStorage.setItem("xh-gym",   JSON.stringify(gymMode
 function saveRuns()    { localStorage.setItem("xh-runs",  JSON.stringify(runLogs)); }
 
 // ─── HELPERS ──────────────────────────────────────────────
-function todayStr() { return new Date().toISOString().slice(0,10); }
-function dateStr(d) { return d.toISOString().slice(0,10); }
+function dateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function todayStr() { return dateStr(new Date()); }
+function parseLocalDate(value) {
+  if (value instanceof Date) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return new Date(NaN);
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+function localDayNumber(d) {
+  return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5;
+}
 
 function getWeekNum(d) {
-  const s = new Date(PROGRAM_START);
+  const s = parseLocalDate(PROGRAM_START);
   const startMon = new Date(s);
   startMon.setDate(s.getDate() - ((s.getDay() + 6) % 7)); // 回退到周一
-  startMon.setHours(0,0,0,0);
-  const target = new Date(d);
-  target.setHours(0,0,0,0);
-  return Math.max(0, Math.min(Math.floor((target - startMon) / (7 * 864e5)), TOTAL_WEEKS - 1));
+  const target = parseLocalDate(d);
+  const elapsedDays = localDayNumber(target) - localDayNumber(startMon);
+  return Math.max(0, Math.min(Math.floor(elapsedDays / 7), TOTAL_WEEKS - 1));
 }
 function getWeekDates(w) {
-  const s = new Date(PROGRAM_START);
+  const s = parseLocalDate(PROGRAM_START);
   const startMon = new Date(s);
   startMon.setDate(s.getDate() - ((s.getDay() + 6) % 7)); // 回退到周一
   startMon.setDate(startMon.getDate() + w * 7);
   return Array.from({length:7}, (_, i) => { const d = new Date(startMon); d.setDate(d.getDate()+i); return d; });
 }
 function getTodayDayId() {
-  const dow = new Date(selectedDate).getDay();
+  const dow = parseLocalDate(selectedDate).getDay();
   const t   = WEEK_TPL.find(w => w.dow === dow);
   return t?.dayId || null;
+}
+
+// 返回 selectedDate 所在周内指定训练日的本地日期
+function getDateForDayId(dayId) {
+  const tmpl = WEEK_TPL.find(w => w.dayId === dayId);
+  if (!tmpl) return selectedDate;
+  const base = parseLocalDate(selectedDate);
+  const monday = new Date(base);
+  monday.setDate(base.getDate() - ((base.getDay() + 6) % 7));
+  const target = new Date(monday);
+  target.setDate(monday.getDate() + ((tmpl.dow + 6) % 7));
+  return dateStr(target);
 }
 
 // 返回 D4/D5 的变体后缀（'g' 健身房 / 'h' 居家），其他 dayId 返回 ''
@@ -711,35 +716,16 @@ function autoDetectVariant(dayId, date) {
   else if (hComp > 0 && gComp === 0)  gymMode[dayId] = false;
 }
 
-// 修复：优先查找 logs 中有数据的最近日期，兜底才按星期推算
-function getMostRecentDateForDayId(dayId) {
-  const tmpl = WEEK_TPL.find(w => w.dayId === dayId);
-  if (!tmpl) return todayStr();
-
-  // 扫描 logs，找所有属于该 dayId 的键（含两种变体后缀）
-  const prefix = `-d${dayId}`;
-  const relevant = Object.keys(logs)
-    .filter(k => {
-      const rest = k.slice(10); // 去掉 "YYYY-MM-DD"
-      return rest === prefix || rest === `${prefix}g` || rest === `${prefix}h`;
-    })
-    .sort()
-    .reverse();
-  if (relevant.length > 0) return relevant[0].slice(0, 10);
-
-  // 兜底：没有历史记录时直接返回今天
-  return todayStr();
-}
-
-function getExercises(dayId) {
-  const data = getDayData(dayId);
+function getExercisesForData(dayId, suffix, data) {
   if (!data) return [];
   const full = data.exercises;
   if (!quickMode) return full;
-  const vs  = variantSuffix(dayId);
-  const key = vs ? `${dayId}${vs}` : dayId;
+  const key = suffix ? `${dayId}${suffix}` : dayId;
   const qids = QUICK_IDS[key] || [];
   return full.filter(e => qids.includes(e.id)).map(e => ({...e, sets: Math.min(e.sets, 3)}));
+}
+function getExercises(dayId) {
+  return getExercisesForData(dayId, variantSuffix(dayId), getDayData(dayId));
 }
 
 function isSetDone(dayId, exId, si) {
@@ -754,6 +740,7 @@ function toggleSet(dayId, exId, si) {
   const ek = `${exId}-${si}`;
   if (logs[k][ek]) delete logs[k][ek];
   else logs[k][ek] = {done:true, weight:null};
+  if (Object.keys(logs[k]).length === 0) delete logs[k];
   save(); renderTrain();
 }
 function setWeight(dayId, exId, si, val) {
@@ -780,8 +767,13 @@ function _compVariant(date, dayId, suffix, data) {
   const k   = `${date}-d${dayId}${suffix}`;
   const log = logs[k];
   if (!log) return 0;
-  const total = data.exercises.reduce((s,e) => s + e.sets, 0);
-  const done  = Object.values(log).filter(v => v.done).length;
+  const exercises = getExercisesForData(dayId, suffix, data);
+  const total = exercises.reduce((sum, exercise) => sum + exercise.sets, 0);
+  const done = exercises.reduce((sum, exercise) => {
+    return sum + Array.from({length: exercise.sets}, (_, i) => {
+      return log[`${exercise.id}-${i}`]?.done ? 1 : 0;
+    }).reduce((a, b) => a + b, 0);
+  }, 0);
   return total > 0 ? Math.min(done/total, 1) : 0;
 }
 
@@ -849,7 +841,7 @@ function renderTrain() {
     const act  = activeDayId === d;
     const data = getDayData(d);
     h += `<button class="day-btn${act?' active':''}" style="--c:${DAY_COLORS[d]}"
-      onclick="selectedDayId=${d};selectedDate=getMostRecentDateForDayId(${d});renderTrain()">
+      onclick="selectedDayId=${d};selectedDate=getDateForDayId(${d});autoDetectVariant(${d},selectedDate);renderTrain()">
       <span class="emoji">${data?.icon || '❓'}</span>
       <span class="d-label">D${d}</span>
     </button>`;
@@ -918,7 +910,7 @@ function renderTrain() {
       h += `<div class="cardio-card"><div class="c-title">有氧</div><div class="c-body">${data.cardio}</div></div>`;
     }
   } else {
-    const tmpl = WEEK_TPL.find(w => w.dow === new Date(selectedDate).getDay());
+    const tmpl = WEEK_TPL.find(w => w.dow === parseLocalDate(selectedDate).getDay());
     const isRunDay = tmpl?.note && tmpl.note.includes('跑');
     if (isRunDay) {
       const defaultDist = tmpl.note.match(/(\d+)km/)?.[1] || '5';
@@ -1017,7 +1009,9 @@ function renderProgress() {
     </button>`;
   }
 
-  let sessions = Object.keys(logs).length;
+  let sessions = Object.values(logs).filter(day =>
+    Object.values(day).some(set => set?.done === true)
+  ).length;
   let totalSets = 0, totalWeight = 0;
   Object.values(logs).forEach(day => {
     Object.values(day).forEach(s => {
