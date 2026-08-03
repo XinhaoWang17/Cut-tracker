@@ -506,43 +506,84 @@ const PROGRAM_START = "2026-07-01";
 const TOTAL_WEEKS   = 12;
 const DAY_COLORS    = {1:"#E8453C", 2:"#3A8EE6", 3:"#4DC85A", 4:"#F7C048", 5:"#A855F7"};
 
-// D4/D5 使用 { gym: {...}, home: {...} } 双版本结构
+// D1-D5 均支持 { gym: {...}, home: {...} } 双版本结构
 const EXERCISES = {
   1: {
-    title:"上肢推 · 胸肩三头", icon:"💪",
-    exercises:[
-      {id:"bp",   name:"平板杠铃卧推",    sets:4, reps:"5-7",       rest:"3min",   note:"主项大重量，渐进超负荷为首要目标",  tracked:true},
-      {id:"idp",  name:"上斜哑铃卧推",    sets:4, reps:"8-10",      rest:"90s",    note:"控制离心2秒，挤压上胸顶峰1秒",      tracked:true},
-      {id:"sp",   name:"坐姿哑铃肩推",    sets:4, reps:"8-10",      rest:"90s",    note:"肘部略向前，核心收紧全程",           tracked:true},
-      {id:"fly",  name:"龙门架夹胸",      sets:3, reps:"10-12",     rest:"60s",    note:"顶峰收缩2秒，感受胸肌内侧",         tracked:true},
-      {id:"lat",  name:"侧平举(递减组)",  sets:4, reps:"12→10→8→6", rest:"60s",    note:"4组递减，最后一组力竭",             tracked:true},
-      {id:"tri",  name:"绳索下压",        sets:3, reps:"10-12",     rest:"60s",    note:"肘关节固定，感受三头发力",           tracked:true},
-      {id:"dip",  name:"双杠臂屈伸",      sets:3, reps:"8-12",      rest:"60s",    note:"身体微前倾增加胸肌参与，腰椎无压力", tracked:false},
-    ]
+    gym: {
+      title:"上肢推 · 胸肩三头", icon:"💪",
+      exercises:[
+        {id:"bp",   name:"平板杠铃卧推",    sets:4, reps:"5-7",       rest:"3min",   note:"主项大重量，渐进超负荷为首要目标",  tracked:true},
+        {id:"idp",  name:"上斜哑铃卧推",    sets:4, reps:"8-10",      rest:"90s",    note:"控制离心2秒，挤压上胸顶峰1秒",      tracked:true},
+        {id:"sp",   name:"坐姿哑铃肩推",    sets:4, reps:"8-10",      rest:"90s",    note:"肘部略向前，核心收紧全程",           tracked:true},
+        {id:"fly",  name:"龙门架夹胸",      sets:3, reps:"10-12",     rest:"60s",    note:"顶峰收缩2秒，感受胸肌内侧",         tracked:true},
+        {id:"lat",  name:"侧平举(递减组)",  sets:4, reps:"12→10→8→6", rest:"60s",    note:"4组递减，最后一组力竭",             tracked:true},
+        {id:"tri",  name:"绳索下压",        sets:3, reps:"10-12",     rest:"60s",    note:"肘关节固定，感受三头发力",           tracked:true},
+        {id:"dip",  name:"双杠臂屈伸",      sets:3, reps:"8-12",      rest:"60s",    note:"身体微前倾增加胸肌参与，腰椎无压力", tracked:false},
+      ]
+    },
+    home: {
+      title:"居家上肢推 · 胸肩三头", icon:"💪",
+      exercises:[
+        {id:"h_epu",  name:"脚抬高俯卧撑",            sets:4, reps:"10-15", rest:"90s", note:"脚放沙发，下落3秒；4组均到15次后再提高难度", tracked:false},
+        {id:"h_bpu",  name:"弹力绳负重俯卧撑",        sets:4, reps:"10-15", rest:"90s", note:"弹力绳绕上背；把手不稳时改做门锚胸推",       tracked:false},
+        {id:"h_ppu",  name:"Pike Push-up 折刀俯卧撑", sets:4, reps:"8-12",  rest:"90s", note:"臀部抬高，头向双手前方下降，腰臀不塌",       tracked:false},
+        {id:"h_bfly", name:"门锚弹力绳夹胸",          sets:3, reps:"12-20", rest:"60s", note:"门锚置于胸口高度，顶峰夹胸停1秒",             tracked:false},
+        {id:"h_blat", name:"弹力绳侧平举",            sets:4, reps:"15-25", rest:"60s", note:"轻阻力慢速完成，肩膀保持下沉",                 tracked:false},
+        {id:"h_btri", name:"高位弹力绳下压",          sets:3, reps:"15-25", rest:"60s", note:"门锚置于高位，肘部固定在身体两侧",             tracked:false},
+      ]
+    }
   },
   2: {
-    title:"下肢 · 脊柱友好+臀腿", icon:"🦵",
-    exercises:[
-      {id:"lp",   name:"背靠式深蹲器",       sets:4, reps:"8-10",   rest:"2min",   note:"⚠️ 背贴靠背，膝盖对准脚尖，卸载腰椎", tracked:true},
-      {id:"ht",   name:"臀推 Hip Thrust",   sets:4, reps:"8-10",   rest:"90s",    note:"臀部顶峰挤压2秒，可加弹力带增加阻力", tracked:true},
-      {id:"le",   name:"腿屈伸",           sets:3, reps:"10-12",  rest:"60s",    note:"孤立股四，末端停留1秒",               tracked:true},
-      {id:"lc",   name:"俯卧腿弯举",       sets:4, reps:"10-12",  rest:"60s",    note:"腘绳肌慢速离心3秒，重点加强",         tracked:true},
-      {id:"bsq",  name:"保加利亚分腿蹲",   sets:3, reps:"10/侧",  rest:"60s",    note:"后脚搭凳，前脚发力，腰椎轴向压力极低", tracked:true},
-      {id:"db",   name:"Dead Bug",         sets:3, reps:"12/侧",  rest:"30s",    note:"⭐ 腰椎稳定核心，下背贴地全程",         tracked:false},
-      {id:"bd",   name:"鸟狗式 Bird Dog",   sets:3, reps:"12/侧",  rest:"30s",    note:"⭐ 对侧四肢伸展，停留2秒",              tracked:false},
-    ]
+    gym: {
+      title:"下肢 · 脊柱友好+臀腿", icon:"🦵",
+      exercises:[
+        {id:"lp",   name:"背靠式深蹲器",       sets:4, reps:"8-10",   rest:"2min", note:"⚠️ 背贴靠背，膝盖对准脚尖，卸载腰椎", tracked:true},
+        {id:"ht",   name:"臀推 Hip Thrust",   sets:4, reps:"8-10",   rest:"90s",  note:"臀部顶峰挤压2秒，可加弹力带增加阻力", tracked:true},
+        {id:"le",   name:"腿屈伸",           sets:3, reps:"10-12",  rest:"60s",  note:"孤立股四，末端停留1秒",               tracked:true},
+        {id:"lc",   name:"俯卧腿弯举",       sets:4, reps:"10-12",  rest:"60s",  note:"腘绳肌慢速离心3秒，重点加强",         tracked:true},
+        {id:"bsq",  name:"保加利亚分腿蹲",   sets:3, reps:"10/侧",  rest:"60s",  note:"后脚搭凳，前脚发力，腰椎轴向压力极低", tracked:true},
+        {id:"db",   name:"Dead Bug",         sets:3, reps:"12/侧",  rest:"30s",  note:"⭐ 腰椎稳定核心，下背贴地全程",         tracked:false},
+        {id:"bd",   name:"鸟狗式 Bird Dog",   sets:3, reps:"12/侧",  rest:"30s",  note:"⭐ 对侧四肢伸展，停留2秒",              tracked:false},
+      ]
+    },
+    home: {
+      title:"居家下肢 · 臀腿核心", icon:"🦵",
+      exercises:[
+        {id:"h_gsq", name:"壶铃杯式深蹲",       sets:4, reps:"15-25",    rest:"90s", note:"下落3秒、底部停1秒；壶铃贴近胸口",          tracked:false},
+        {id:"h_rdl", name:"弹力绳罗马尼亚硬拉", sets:4, reps:"12-20",    rest:"90s", note:"髋向后推，背部保持中立，臀腿发力站起",        tracked:false},
+        {id:"h_kbg", name:"壶铃臀桥",           sets:4, reps:"15-25",    rest:"60s", note:"壶铃放于髋部，顶峰夹臀停2秒",                 tracked:false},
+        {id:"h_bsq", name:"保加利亚分腿蹲",     sets:3, reps:"10-15/侧", rest:"60s", note:"后脚放沙发，前脚全脚掌发力，保持躯干稳定",     tracked:false},
+        {id:"h_hsw", name:"臀桥腘绳肌走步",     sets:3, reps:"8-12",     rest:"60s", note:"从臀桥位交替向外走，腰臀保持不下沉",           tracked:false},
+        {id:"h_db",  name:"Dead Bug",           sets:3, reps:"12/侧",    rest:"30s", note:"下背贴地，动作放慢，呼气时伸展对侧手脚",       tracked:false},
+        {id:"h_bd",  name:"鸟狗式 Bird Dog",     sets:3, reps:"12/侧",    rest:"30s", note:"对侧手脚伸展，骨盆不旋转，末端停2秒",          tracked:false},
+      ]
+    }
   },
   3: {
-    title:"上肢拉 · 背部二头", icon:"🔥",
-    exercises:[
-      {id:"pu",   name:"引体向上",         sets:4, reps:"5-8",    rest:"2-3min", note:"加重/辅助均可，顶峰挤压背阔肌1秒",   tracked:true},
-      {id:"csr",  name:"胸部支撑划船",     sets:4, reps:"8-10",   rest:"90s",    note:"趴在斜凳上完全卸载腰椎，全程控制",   tracked:true},
-      {id:"sar",  name:"单臂哑铃划船",     sets:4, reps:"8-10",   rest:"60s",    note:"充分伸展肩胛骨→充分回缩，重量优先",  tracked:true},
-      {id:"fp",   name:"绳索面拉",         sets:4, reps:"15-20",  rest:"45s",    note:"后束+肩袖健康，每次必做不减",         tracked:true},
-      {id:"spd",  name:"直臂下压",         sets:3, reps:"12-15",  rest:"60s",    note:"背阔肌孤立发力，手臂尽量伸直",        tracked:true},
-      {id:"cur",  name:"锤式弯举",         sets:3, reps:"10-12",  rest:"60s",    note:"肱肌+肱桡肌，哑铃中立握",            tracked:true},
-      {id:"bcur", name:"杠铃弯举",         sets:3, reps:"8-10",   rest:"60s",    note:"二头峰值收缩，肘部不上抬",            tracked:true},
-    ]
+    gym: {
+      title:"上肢拉 · 背部二头", icon:"🔥",
+      exercises:[
+        {id:"pu",   name:"引体向上",         sets:4, reps:"5-8",    rest:"2-3min", note:"加重/辅助均可，顶峰挤压背阔肌1秒",   tracked:true},
+        {id:"csr",  name:"胸部支撑划船",     sets:4, reps:"8-10",   rest:"90s",    note:"趴在斜凳上完全卸载腰椎，全程控制",   tracked:true},
+        {id:"sar",  name:"单臂哑铃划船",     sets:4, reps:"8-10",   rest:"60s",    note:"充分伸展肩胛骨→充分回缩，重量优先",  tracked:true},
+        {id:"fp",   name:"绳索面拉",         sets:4, reps:"15-20",  rest:"45s",    note:"后束+肩袖健康，每次必做不减",         tracked:true},
+        {id:"spd",  name:"直臂下压",         sets:3, reps:"12-15",  rest:"60s",    note:"背阔肌孤立发力，手臂尽量伸直",        tracked:true},
+        {id:"cur",  name:"锤式弯举",         sets:3, reps:"10-12",  rest:"60s",    note:"肱肌+肱桡肌，哑铃中立握",            tracked:true},
+        {id:"bcur", name:"杠铃弯举",         sets:3, reps:"8-10",   rest:"60s",    note:"二头峰值收缩，肘部不上抬",            tracked:true},
+      ]
+    },
+    home: {
+      title:"居家上肢拉 · 背部二头", icon:"🔥",
+      exercises:[
+        {id:"h_pd",   name:"高跪姿双手弹力绳下拉", sets:4, reps:"12-20",   rest:"90s", note:"门锚置于高位，高跪姿收紧核心，肘向髋部拉",       tracked:false},
+        {id:"h_row",  name:"坐姿双手弹力绳划船",   sets:4, reps:"12-20",   rest:"90s", note:"坐在垫上，胸口抬起，肩胛后缩后再拉动手臂",       tracked:false},
+        {id:"h_sar",  name:"单臂弹力绳划船",       sets:4, reps:"12-20/侧",rest:"60s", note:"躯干保持正对前方，拉到腰侧并停1秒",               tracked:false},
+        {id:"h_fp",   name:"弹力绳面拉",           sets:4, reps:"15-25",   rest:"45s", note:"拉向眉眼高度，肘部打开，肩膀不耸起",             tracked:false},
+        {id:"h_spd",  name:"直臂弹力绳下压",       sets:3, reps:"12-20",   rest:"60s", note:"手臂微屈并固定，用背阔肌把手柄压向大腿",         tracked:false},
+        {id:"h_hcur", name:"弹力绳锤式弯举",       sets:3, reps:"12-20",   rest:"60s", note:"保持中立握，肘部固定在身体两侧",                 tracked:false},
+        {id:"h_bcur", name:"弹力绳普通弯举",       sets:3, reps:"12-20",   rest:"60s", note:"掌心向上，顶峰收缩，身体不要借力后仰",           tracked:false},
+      ]
+    }
   },
   4: {
     gym: {
@@ -581,9 +622,9 @@ const EXERCISES = {
       ]
     },
     home: {
-      title:"居家核心 · 健腹轮版", icon:"⚡",
+      title:"居家核心 · 自重版", icon:"⚡",
       exercises:[
-        {id:"s_ab",   name:"腹肌滚轮(跪姿→站姿)", sets:4, reps:"8-12",   rest:"60s", note:"跪姿打好基础再过渡站姿，腰椎始终贴合", tracked:false},
+        {id:"s_llp",  name:"长杠杆平板支撑",         sets:4, reps:"20-40s", rest:"60s", note:"肘部比普通平板更靠前，肋骨收住，腰臀不塌",   tracked:false},
         {id:"s_alr2", name:"仰卧直腿上举",         sets:4, reps:"12-15",  rest:"45s", note:"腰椎贴地全程，脚跟不触地，专攻下腹",   tracked:false},
         {id:"s_rc2",  name:"反向卷腹",             sets:4, reps:"15-20",  rest:"45s", note:"骨盆上卷，下腹最强孤立",               tracked:false},
         {id:"s_mc2",  name:"McGill卷腹",           sets:3, reps:"12-15",  rest:"30s", note:"⭐ 腰椎友好，仅头肩离地",              tracked:false},
@@ -597,12 +638,15 @@ const EXERCISES = {
 
 const QUICK_IDS = {
   1:    ["bp","idp","sp","lat"],
+  "1h": ["h_epu","h_bpu","h_ppu","h_blat"],
   2:    ["lp","ht","lc","db"],
+  "2h": ["h_gsq","h_rdl","h_bsq","h_db"],
   3:    ["pu","csr","sar","fp"],
+  "3h": ["h_pd","h_row","h_fp","h_hcur"],
   "4g": ["f_fp","f_lat","f_tri","f_cfly"],
   "4h": ["f_mc","f_db","f_mt"],
   "5g": ["s_hl","s_rc","s_alr","s_mc"],
-  "5h": ["s_ab","s_alr2","s_rc2","s_mc2"]
+  "5h": ["s_llp","s_alr2","s_rc2","s_mc2"]
 };
 const WEEK_TPL = [
   {dow:1,label:"周一",dayId:1},
@@ -618,9 +662,9 @@ const WEEK_TPL = [
 let logs      = JSON.parse(localStorage.getItem("xh-logs")  || "{}");
 let bodyStats = JSON.parse(localStorage.getItem("xh-body")  || "[]");
 let quickMode = JSON.parse(localStorage.getItem("xh-quick") || "false");
-// gymMode: true = 健身房版, false = 居家版；仅对 D4/D5 有效
+// gymMode: true = 健身房版, false = 居家版；D1-D5 均有效
 let _gmRaw    = JSON.parse(localStorage.getItem("xh-gym")   || "{}");
-let gymMode   = {4: !!(_gmRaw[4] || _gmRaw["4"]), 5: !!(_gmRaw[5] || _gmRaw["5"])};
+let gymMode   = Object.fromEntries([1,2,3,4,5].map(d => [d, !!_gmRaw[d]]));
 let currentTab    = "train";
 let selectedDayId = null;
 let selectedDate  = todayStr();
@@ -688,10 +732,16 @@ function getDateForDayId(dayId) {
   return dateStr(target);
 }
 
-// 返回 D4/D5 的变体后缀（'g' 健身房 / 'h' 居家），其他 dayId 返回 ''
+// D1-D3 健身房版沿用历史无后缀日志键；D4-D5 健身房版使用 g 后缀
+function gymVariantSuffix(dayId) {
+  return dayId <= 3 ? '' : 'g';
+}
+
+// 返回当前训练版本的日志后缀
 function variantSuffix(dayId) {
-  if (dayId !== 4 && dayId !== 5) return '';
-  return gymMode[dayId] ? 'g' : 'h';
+  const ex = EXERCISES[dayId];
+  if (!ex || ex.gym === undefined) return '';
+  return gymMode[dayId] ? gymVariantSuffix(dayId) : 'h';
 }
 
 // 当前 selectedDate + dayId 对应的 log 键
@@ -707,15 +757,32 @@ function getDayData(dayId) {
   return ex;
 }
 
-// 从周视图跳转时，自动检测该日期已打卡的版本
-function autoDetectVariant(dayId, date) {
-  if (dayId !== 4 && dayId !== 5) return;
-  const gComp = _compVariant(date, dayId, 'g', EXERCISES[dayId].gym);
-  const hComp = _compVariant(date, dayId, 'h', EXERCISES[dayId].home);
-  if (gComp > 0 && hComp === 0)       gymMode[dayId] = true;
-  else if (hComp > 0 && gComp === 0)  gymMode[dayId] = false;
+function variantHasDone(date, dayId, suffix) {
+  const log = logs[`${date}-d${dayId}${suffix}`];
+  return !!log && Object.values(log).some(set => set?.done === true);
 }
 
+// 周视图标题按该日期实际打卡版本显示，不改变当前选择
+function getDayDataForDate(dayId, date) {
+  const ex = EXERCISES[dayId];
+  if (!ex) return null;
+  if (ex.gym === undefined) return ex;
+  const gymDone  = variantHasDone(date, dayId, gymVariantSuffix(dayId));
+  const homeDone = variantHasDone(date, dayId, 'h');
+  if (gymDone && !homeDone) return ex.gym;
+  if (homeDone && !gymDone) return ex.home;
+  return gymMode[dayId] ? ex.gym : ex.home;
+}
+
+// 从周视图跳转时，自动检测该日期已打卡的版本
+function autoDetectVariant(dayId, date) {
+  const ex = EXERCISES[dayId];
+  if (!ex || ex.gym === undefined) return;
+  const gymDone  = variantHasDone(date, dayId, gymVariantSuffix(dayId));
+  const homeDone = variantHasDone(date, dayId, 'h');
+  if (gymDone && !homeDone)       gymMode[dayId] = true;
+  else if (homeDone && !gymDone)  gymMode[dayId] = false;
+}
 function getExercisesForData(dayId, suffix, data) {
   if (!data) return [];
   const full = data.exercises;
@@ -777,17 +844,18 @@ function _compVariant(date, dayId, suffix, data) {
   return total > 0 ? Math.min(done/total, 1) : 0;
 }
 
-// D4/D5 取两个变体中较大的完成率（任意版本打卡都算）
+// 双版本训练日取两个版本中较大的完成率（任意版本打卡都算）
 function getDayComp(date, dayId) {
-  if (dayId === 4 || dayId === 5) {
+  const ex = EXERCISES[dayId];
+  if (!ex) return 0;
+  if (ex.gym !== undefined) {
     return Math.max(
-      _compVariant(date, dayId, 'g', EXERCISES[dayId].gym),
-      _compVariant(date, dayId, 'h', EXERCISES[dayId].home)
+      _compVariant(date, dayId, gymVariantSuffix(dayId), ex.gym),
+      _compVariant(date, dayId, 'h', ex.home)
     );
   }
-  return _compVariant(date, dayId, '', EXERCISES[dayId]);
+  return _compVariant(date, dayId, '', ex);
 }
-
 function getWeekComp(w) {
   const dates = getWeekDates(w);
   let tot = 0, comp = 0;
@@ -833,6 +901,7 @@ function render() {
 function renderTrain() {
   const el = document.getElementById('tab-train');
   const activeDayId = selectedDayId || getTodayDayId();
+  if (activeDayId && selectedDayId === null) autoDetectVariant(activeDayId, selectedDate);
   const c = activeDayId ? DAY_COLORS[activeDayId] : '#666';
 
   // ── D1-D5 选择按钮 ──
@@ -848,8 +917,8 @@ function renderTrain() {
   });
   h += `</div>`;
 
-  // ── 周五/周六双版本切换 ──
-  if (activeDayId === 4 || activeDayId === 5) {
+  // ── 健身房 / 居家版本切换 ──
+  if (activeDayId && EXERCISES[activeDayId]?.gym !== undefined) {
     const isGym = gymMode[activeDayId];
     h += `<div class="variant-toggle">
       <button class="var-btn${isGym?' active':''}" style="--c:${c}"
@@ -957,12 +1026,8 @@ function renderWeek() {
     const tmpl    = WEEK_TPL.find(w => w.dow === d.getDay());
     const ds      = dateStr(d), isToday = ds === todayStr();
     const comp    = tmpl?.dayId ? getDayComp(ds, tmpl.dayId) : null;
-    // 显示标题时，若有打卡数据则自动检测版本，否则显示当前 gymMode 的版本标题
-    let prog = null;
-    if (tmpl?.dayId) {
-      autoDetectVariant(tmpl.dayId, ds);
-      prog = getDayData(tmpl.dayId);
-    }
+    // 标题按该日期实际打卡版本显示，避免渲染周视图时改变全局模式
+    const prog = tmpl?.dayId ? getDayDataForDate(tmpl.dayId, ds) : null;
     const dayColor= tmpl?.dayId ? DAY_COLORS[tmpl.dayId] : 'var(--text4)';
 
     const clickAction = tmpl?.dayId
