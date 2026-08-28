@@ -256,6 +256,58 @@ input:focus { outline: none; border-color: var(--red) !important; }
   color: var(--red); font-size: 12px; padding: 0;
 }
 
+/* ===== Set rest timer ===== */
+.rest-timer {
+  --timer-c: var(--red);
+  position: fixed; z-index: 100; left: 50%;
+  bottom: calc(var(--safe-bottom) + 14px);
+  width: min(calc(100% - 24px), 456px);
+  border: 1px solid color-mix(in srgb, var(--timer-c) 55%, var(--border));
+  border-radius: 16px; overflow: hidden;
+  background: color-mix(in srgb, var(--timer-c) 8%, var(--card));
+  box-shadow: 0 14px 40px rgba(0,0,0,0.38);
+  opacity: 0; pointer-events: none;
+  transform: translate(-50%, calc(100% + 32px));
+  transition: opacity 0.22s ease, transform 0.28s cubic-bezier(.2,.8,.2,1), border-color 0.2s;
+}
+.rest-timer.show {
+  opacity: 1; pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+.rest-timer.done { --timer-c: var(--green); }
+.rest-timer.done .rest-count { animation: timerPulse 0.7s ease 2; }
+.rest-progress { height: 3px; background: color-mix(in srgb, var(--timer-c) 14%, transparent); }
+.rest-progress-fill {
+  height: 100%; width: 100%; background: var(--timer-c);
+  transition: width 0.25s linear, background 0.2s;
+}
+.rest-timer-main {
+  display: grid; grid-template-columns: minmax(0,1fr) auto;
+  align-items: center; gap: 12px; padding: 12px 13px 8px;
+}
+.rest-label { font-size: 12px; color: var(--timer-c); font-weight: 800; letter-spacing: 0.4px; }
+.rest-exercise {
+  margin-top: 2px; font-size: 11px; color: var(--text3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rest-count {
+  min-width: 66px; text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 27px; line-height: 1; font-weight: 700; color: var(--timer-c);
+}
+.rest-timer-actions { display: flex; gap: 7px; padding: 0 13px 11px; }
+.rest-timer-actions button {
+  flex: 1; padding: 7px 10px; border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--timer-c) 32%, var(--border));
+  background: color-mix(in srgb, var(--timer-c) 9%, var(--bg));
+  color: var(--text2); font-size: 11px; font-weight: 700;
+}
+.rest-timer-actions button:last-child { color: var(--text3); }
+@keyframes timerPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
 /* ===== Cardio ===== */
 .cardio-card {
   margin-top: 12px; padding: 14px; border-radius: 10px;
@@ -461,6 +513,20 @@ input:focus { outline: none; border-color: var(--red) !important; }
   <div class="tab-content" id="tab-week"></div>
   <div class="tab-content" id="tab-progress"></div>
   <div class="tab-content" id="tab-body"></div>
+</div>
+<div class="rest-timer" id="restTimer" role="timer" aria-atomic="true">
+  <div class="rest-progress"><div class="rest-progress-fill" id="restProgress"></div></div>
+  <div class="rest-timer-main">
+    <div>
+      <div class="rest-label" id="restTimerLabel" aria-live="polite">组间休息</div>
+      <div class="rest-exercise" id="restTimerExercise"></div>
+    </div>
+    <div class="rest-count" id="restTimerCount">0:00</div>
+  </div>
+  <div class="rest-timer-actions">
+    <button onclick="addRestTime(30)">+30 秒</button>
+    <button id="restTimerClose" onclick="skipRestTimer()">跳过</button>
+  </div>
 </div>
 <div class="footer">XINHAO · TEN MILE · 2026.10.16 · 保持肌肉量</div>
 
@@ -670,6 +736,8 @@ let selectedDate  = todayStr();
 let viewWeek      = getWeekNum(new Date());
 let editingWeight = null;
 let chartMetric   = localStorage.getItem("xh-chart-metric") || "weight";
+const restTimerState = {active:false, done:false, endAt:0, totalSeconds:0, exerciseName:"", color:"var(--red)"};
+let restTimerInterval = null;
 
 let runLogs = JSON.parse(localStorage.getItem("xh-runs") || "{}");
 
@@ -817,6 +885,95 @@ function getExercises(dayId) {
   return getExercisesForData(dayId, variantSuffix(dayId), getDayData(dayId));
 }
 
+function parseRestSeconds(value) {
+  const text = String(value || '').trim().toLowerCase();
+  const minutes = text.match(/(\d+(?:\.\d+)?)(?:\s*[-–~]\s*(\d+(?:\.\d+)?))?\s*(?:min|分钟|m)/);
+  if (minutes) return Math.round(Number(minutes[2] || minutes[1]) * 60);
+  const seconds = text.match(/(\d+(?:\.\d+)?)(?:\s*[-–~]\s*(\d+(?:\.\d+)?))?\s*(?:秒|s)/);
+  if (seconds) return Math.round(Number(seconds[2] || seconds[1]));
+  return 0;
+}
+function formatRestTime(seconds) {
+  const safe = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;
+}
+function findExercise(dayId, exId) {
+  return getDayData(dayId)?.exercises?.find(ex => ex.id === exId) || null;
+}
+function startRestTimer(dayId, exId) {
+  const exercise = findExercise(dayId, exId);
+  const seconds = parseRestSeconds(exercise?.rest);
+  if (!exercise || seconds <= 0) return;
+  Object.assign(restTimerState, {
+    active:true,
+    done:false,
+    endAt:Date.now() + seconds * 1000,
+    totalSeconds:seconds,
+    exerciseName:exercise.name,
+    restText:exercise.rest,
+    color:DAY_COLORS[dayId] || 'var(--red)'
+  });
+  if (restTimerInterval) clearInterval(restTimerInterval);
+  restTimerInterval = setInterval(updateRestTimer, 250);
+  renderRestTimer();
+}
+function addRestTime(seconds) {
+  if (!restTimerState.active) return;
+  if (restTimerState.done) {
+    restTimerState.done = false;
+    restTimerState.totalSeconds = seconds;
+    restTimerState.endAt = Date.now() + seconds * 1000;
+    if (restTimerInterval) clearInterval(restTimerInterval);
+    restTimerInterval = setInterval(updateRestTimer, 250);
+  } else {
+    restTimerState.totalSeconds += seconds;
+    restTimerState.endAt += seconds * 1000;
+  }
+  renderRestTimer();
+}
+function skipRestTimer() {
+  if (restTimerInterval) clearInterval(restTimerInterval);
+  restTimerInterval = null;
+  restTimerState.active = false;
+  restTimerState.done = false;
+  renderRestTimer();
+}
+function updateRestTimer() {
+  if (!restTimerState.active) return;
+  const remaining = Math.max(0, Math.ceil((restTimerState.endAt - Date.now()) / 1000));
+  if (remaining <= 0 && !restTimerState.done) {
+    restTimerState.done = true;
+    if (restTimerInterval) clearInterval(restTimerInterval);
+    restTimerInterval = null;
+    if (window.navigator.vibrate) window.navigator.vibrate([180, 100, 180]);
+  }
+  renderRestTimer();
+}
+function renderRestTimer() {
+  const el = document.getElementById('restTimer');
+  if (!el) return;
+  if (!restTimerState.active) {
+    el.className = 'rest-timer';
+    return;
+  }
+  const remaining = restTimerState.done
+    ? 0
+    : Math.max(0, Math.ceil((restTimerState.endAt - Date.now()) / 1000));
+  const progress = restTimerState.done
+    ? 100
+    : Math.max(0, Math.min(100, (remaining / restTimerState.totalSeconds) * 100));
+  el.style.setProperty('--timer-c', restTimerState.color);
+  el.className = `rest-timer show${restTimerState.done ? ' done' : ''}`;
+  document.getElementById('restProgress').style.width = `${progress}%`;
+  document.getElementById('restTimerLabel').textContent = restTimerState.done ? '休息结束 · 开始下一组' : '组间休息倒计时';
+  document.getElementById('restTimerExercise').textContent = `${restTimerState.exerciseName} · 建议休息 ${restTimerState.restText}`;
+  document.getElementById('restTimerCount').textContent = restTimerState.done ? 'GO' : formatRestTime(remaining);
+  document.getElementById('restTimerClose').textContent = restTimerState.done ? '关闭' : '跳过';
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) updateRestTimer();
+});
+
 function isSetDone(dayId, exId, si) {
   return logs[logKey(dayId)]?.[`${exId}-${si}`]?.done || false;
 }
@@ -827,16 +984,20 @@ function toggleSet(dayId, exId, si) {
   const k = logKey(dayId);
   if (!logs[k]) logs[k] = {};
   const ek = `${exId}-${si}`;
-  if (logs[k][ek]) delete logs[k][ek];
+  const wasDone = !!logs[k][ek]?.done;
+  if (wasDone) delete logs[k][ek];
   else logs[k][ek] = {done:true, weight:null};
   if (Object.keys(logs[k]).length === 0) delete logs[k];
   save(); renderTrain();
+  if (!wasDone) startRestTimer(dayId, exId);
 }
 function setWeight(dayId, exId, si, val) {
   const k = logKey(dayId);
   if (!logs[k]) logs[k] = {};
+  const wasDone = !!logs[k][`${exId}-${si}`]?.done;
   logs[k][`${exId}-${si}`] = {done:true, weight:parseFloat(val)||null};
   save(); editingWeight = null; renderTrain();
+  if (!wasDone) startRestTimer(dayId, exId);
 }
 
 function logRun(date, dist) {
